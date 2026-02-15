@@ -73,11 +73,11 @@
         func_layer {
             display-name = "FUNC";
             bindings = <
-&kp GRAVE  &kp F1    &kp F2          &kp F3          &kp F4           &kp F5           &bt BT_CLR  &kp C_MUTE  &kp F6        &kp F7            &kp F8             &kp F9           &kp F10    &kp DEL
-&trans     &trans    &kp UP          &kp UP_ARROW    &trans           &out OUT_TOG     &kp F11     &kp F12     &kp UP_ARROW  &kp LEFT_BRACKET  &kp RIGHT_BRACKET  &kp BACKSLASH
-&trans     &kp LEFT  &kp LEFT_ARROW  &kp DOWN_ARROW  &kp RIGHT_ARROW  &trans           &mkp RCLK   &mkp RCLK   &trans        &kp LEFT_ARROW    &kp DOWN_ARROW     &kp RIGHT_ARROW  &kp RIGHT  &kp SQT
-&trans     &trans    &trans          &trans          &trans           &rgb_ug RGB_TOG  &trans      &trans      &bl BL_DEC    &bl BL_INC        &trans             &trans           &trans     &kp MINUS  &kp EQUAL  &trans
-&BOT       &trans    &trans          &trans          &mo 1            &mo 1            &trans      &trans      &trans        &BOT
+&kp GRAVE  &kp F1  &kp F2          &kp F3          &kp F4           &kp F5           &bt BT_CLR  &kp C_MUTE  &kp F6        &kp F7            &kp F8             &kp F9           &kp F10    &kp DEL
+&trans     &trans  &kp UP          &kp UP_ARROW    &trans           &out OUT_TOG     &kp F11     &kp F12     &kp UP_ARROW  &kp LEFT_BRACKET  &kp RIGHT_BRACKET  &kp BACKSLASH
+&trans     &trans  &kp LEFT_ARROW  &kp DOWN_ARROW  &kp RIGHT_ARROW  &trans           &mkp RCLK   &mkp RCLK   &trans        &kp LEFT_ARROW    &kp DOWN_ARROW     &kp RIGHT_ARROW  &kp RIGHT  &kp SQT
+&trans     &trans  &trans          &trans          &trans           &rgb_ug RGB_TOG  &trans      &trans      &bl BL_DEC    &bl BL_INC        &trans             &trans           &trans     &kp MINUS  &kp EQUAL  &trans
+&BOT       &trans  &trans          &trans          &mo 1            &mo 1            &trans      &trans      &trans        &BOT
             >;
 
             sensor-bindings = <&BLE_encoder &inc_dec_kp UP DOWN>;
