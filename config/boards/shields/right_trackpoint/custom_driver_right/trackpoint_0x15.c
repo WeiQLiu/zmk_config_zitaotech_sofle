@@ -104,18 +104,21 @@ static void trackpoint_poll_work(struct k_work *work) {
                 /* Space 按住时作为滚轮 */
                 int16_t scroll_x = 0, scroll_y = 0;
                 if (abs(dy) >= 128) {
-                    scroll_x = -dx / 24;
-                    scroll_y = -dy / 24;
+                    scroll_x = -dx / 64; // 原来是 24，改大可以减速
+                    scroll_y = -dy / 64; // 原来是 24
                 } else if (abs(dy) >= 64) {
-                    scroll_x = -dx / 16;
-                    scroll_y = -dy / 16;
+                    scroll_x = -dx / 48; // 原来是16
+                    scroll_y = -dy / 48; // 原来是16
                 } else if (abs(dy) >= 32) {
-                    scroll_x = -dx / 12;
-                    scroll_y = -dy / 12;
+                    scroll_x = -dx / 32; // 原来是12
+                    scroll_y = -dy / 32; // 原来是12
                 } else if (abs(dy) >= 21) {
-                    scroll_x = -dx / 8;
-                    scroll_y = -dy / 8;
+                    scroll_x = -dx / 20; // 原来是8
+                    scroll_y = -dy / 20; // 原来是8
                 } else if (abs(dy) >= 3) {
+                    // 极小位移时，原来是固定发送1或者-1
+                    // 如果还觉得快，可以加一个计数器让它每两三次触发才发一次 1
+                    // 这里实际上没有修改过，应该就是ai提到的一个建议。
                     scroll_x = (dx > 0) ? -1 : (dx < 0) ? 1 : 0;
                     scroll_y = (dy > 0) ? -1 : (dy < 0) ? 1 : 0;
                 } else {
@@ -124,7 +127,9 @@ static void trackpoint_poll_work(struct k_work *work) {
                 }
                 input_report_rel(dev, INPUT_REL_HWHEEL, scroll_x, false, K_FOREVER);
                 input_report_rel(dev, INPUT_REL_WHEEL, -scroll_y, true, K_FOREVER);
-                k_sleep(K_MSEC(40));
+
+                // 关键：增加延迟时间也能减速
+                k_sleep(K_MSEC(60)); // 原来是40ms，改成60ms或者更大，滚动频率会降低
             } else {
                 /* 正常鼠标移动 */
                 uint8_t tp_led_brt = custom_led_get_last_valid_brightness();
