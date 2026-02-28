@@ -115,7 +115,7 @@ static void trackpoint_poll_work(struct k_work *work) {
                 } else if (abs(dy) >= 21) {
                     scroll_x = -dx / 20; // 原来是8
                     scroll_y = -dy / 20; // 原来是8
-                } else if (abs(dy) >= 3) {
+                } else if (abs(dy) >= 1) { // 原来是3，改成1，应该会改善反向转动时不灵敏的问题。
                     // 极小位移时，原来是固定发送1或者-1
                     // 如果还觉得快，可以加一个计数器让它每两三次触发才发一次 1
                     // 这里实际上没有修改过，应该就是ai提到的一个建议。
@@ -129,7 +129,8 @@ static void trackpoint_poll_work(struct k_work *work) {
                 input_report_rel(dev, INPUT_REL_WHEEL, -scroll_y, true, K_FOREVER);
 
                 // 关键：增加延迟时间也能减速
-                k_sleep(K_MSEC(60)); // 原来是40ms，改成60ms或者更大，滚动频率会降低
+                k_sleep(K_MSEC(30)); // 原来是40ms，改成60ms或者更大，滚动频率会降低
+                    // 这一行又修改了一下，因为，说是变小会改善滚动时，突然反向时的死区问题。改成30
             } else {
                 /* 正常鼠标移动 */
                 uint8_t tp_led_brt = custom_led_get_last_valid_brightness();
