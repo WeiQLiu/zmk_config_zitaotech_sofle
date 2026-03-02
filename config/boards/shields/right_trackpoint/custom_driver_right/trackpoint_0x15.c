@@ -103,7 +103,9 @@ static void trackpoint_poll_work(struct k_work *work) {
         if (trackpoint_read_packet(dev, &dx, &dy) == 0) {
             if (space_pressed) {
                 /* Space 按住时作为滚轮 */
-                int16_t scroll_x = 0, scroll_y = 0;
+                // 尝试放弃分级，直接使用固定的线性缩放，所以下面的大批量直接注释掉。
+                // int16_t scroll_x = 0, scroll_y = 0;
+                /*
                 if (abs(dy) >= 128) {
                     scroll_x = -dx / 64; // 原来是 24，改大可以减速
                     scroll_y = -dy / 64; // 原来是 24
@@ -126,11 +128,22 @@ static void trackpoint_poll_work(struct k_work *work) {
                     scroll_x = (dx > 0) ? -1 : (dx < 0) ? 1 : 0;
                     scroll_y = 0;
                 }
+                */
+                int16_t scroll_x = -dx / 60;
+                int16_t scroll_y = -dy / 60;
+
+                // 保留一个最小出发死区，防止手抖
+                if (abs(dx) < 2 && abs(dy) < 2) {
+                    scroll_x = 0;
+                    scroll_y = 0;
+                }
+                // 修改到这里结束。
+                
                 input_report_rel(dev, INPUT_REL_HWHEEL, scroll_x, false, K_FOREVER);
                 input_report_rel(dev, INPUT_REL_WHEEL, -scroll_y, true, K_FOREVER);
 
                 // 关键：增加延迟时间也能减速
-                k_sleep(K_MSEC(30)); // 原来是40ms，改成60ms或者更大，滚动频率会降低
+                k_sleep(K_MSEC(15)); // 原来是40ms，改成60ms或者更大，滚动频率会降低
                     // 这一行又修改了一下，因为，说是变小会改善滚动时，突然反向时的死区问题。改成30
             } else {
                 /* 正常鼠标移动 */
