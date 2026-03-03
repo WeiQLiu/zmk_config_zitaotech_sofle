@@ -224,10 +224,10 @@
         func_layer {
             display-name = "FUNC";
             bindings = <
-&kp GRAVE  &kp F1  &kp F2          &kp F3          &kp F4           &kp F5           &bt BT_CLR  &kp C_MUTE  &kp F6        &kp F7            &kp F8             &kp F9           &kp F10    &kp DEL
+&kp GRAVE  &kp F1  &kp F2          &kp F3          &kp F4           &kp F5           &bt BT_CLR  &kp C_MUTE  &kp F6        &kp F7            &kp F8             &kp F9           &kp F10  &kp DEL
 &none      &none   &none           &kp UP_ARROW    &none            &out OUT_TOG     &kp F11     &kp F12     &kp UP_ARROW  &kp LEFT_BRACKET  &kp RIGHT_BRACKET  &kp BACKSLASH
-&to 2      &none   &kp LEFT_ARROW  &kp DOWN_ARROW  &kp RIGHT_ARROW  &none            &mkp RCLK   &mkp RCLK   &none         &kp LEFT_ARROW    &none              &kp RIGHT_ARROW  &kp RIGHT  &kp SQT
-&none      &none   &none           &none           &none            &rgb_ug RGB_TOG  &none       &none       &bl BL_DEC    &bl BL_INC        &none              &none            &none      &kp MINUS  &kp EQUAL  &none
+&to 2      &none   &kp LEFT_ARROW  &kp DOWN_ARROW  &kp RIGHT_ARROW  &none            &mkp RCLK   &mkp RCLK   &none         &kp LEFT_ARROW    &kp DOWN_ARROW     &kp RIGHT_ARROW  &none    &kp SQT
+&none      &none   &none           &none           &none            &rgb_ug RGB_TOG  &none       &none       &bl BL_DEC    &bl BL_INC        &none              &none            &none    &kp MINUS  &kp EQUAL  &none
 &BOT       &none   &none           &none           &kp LEFT_SHIFT   &kp RIGHT_SHIFT  &none       &none       &none         &BOT
             >;
 
@@ -256,12 +256,12 @@
             bindings = <
 &kp GRAVE  &kp F1  &kp F2          &kp F3          &kp F4           &kp F5           &bt BT_CLR  &kp C_MUTE  &kp F6        &kp F7            &kp F8             &kp F9           &kp F10    &kp DEL
 &to 0      &none   &none           &kp UP_ARROW    &none            &out OUT_TOG     &kp F11     &kp F12     &kp UP_ARROW  &kp LEFT_BRACKET  &kp RIGHT_BRACKET  &kp BACKSLASH
-&none      &none   &kp LEFT_ARROW  &kp DOWN_ARROW  &kp RIGHT_ARROW  &none            &mkp RCLK   &mkp RCLK   &none         &kp LEFT_ARROW    &none              &kp RIGHT_ARROW  &kp RIGHT  &kp SQT
+&none      &none   &kp LEFT_ARROW  &kp DOWN_ARROW  &kp RIGHT_ARROW  &none            &mkp RCLK   &mkp RCLK   &none         &kp LEFT_ARROW    &kp DOWN_ARROW     &kp RIGHT_ARROW  &kp RIGHT  &kp SQT
 &none      &none   &none           &none           &none            &rgb_ug RGB_TOG  &none       &none       &bl BL_DEC    &bl BL_INC        &none              &none            &none      &kp MINUS  &kp EQUAL  &none
 &BOT       &none   &none           &none           &kp LEFT_SHIFT   &kp RIGHT_SHIFT  &none       &none       &none         &BOT
             >;
 
-            sensor-bindings = <&BLE_encoder>, <&inc_dec_kp LG(MINUS) LG(EQUAL)>;
+            sensor-bindings = <&BLE_encoder>, <&inc_dec_kp LEFT RIGHT_ARROW>;
         };
     };
 };
