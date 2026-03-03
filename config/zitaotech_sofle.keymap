@@ -158,8 +158,8 @@
             key-positions = <51 52>;
         };
 
-        tog-windows {
-            bindings = <&tog 2>;
+        to-windows {
+            bindings = <&to 2>;
             key-positions = <1 2>;
             layers = <0 3>;
         };
