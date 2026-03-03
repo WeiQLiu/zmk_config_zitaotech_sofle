@@ -197,6 +197,19 @@
                 <&inc_dec_kp PAGE_UP PAGE_DOWN>;
         };
 
+
+        RES_layer {
+            // display-name = "RESERVE";
+            display-name = "WINDOWS";
+            bindings = <
+&trans    &trans             &trans               &trans     &trans       &trans       &trans     &trans  &trans  &trans  &trans  &trans                &trans                 &trans
+&trans    &trans             &trans               &trans     &trans       &trans       &trans     &trans  &trans  &trans  &trans  &trans
+&trans    &hml LEFT_SHIFT A  &hml LEFT_CONTROL S  &trans     &trans       &trans       &trans     &trans  &trans  &trans  &trans  &hmr RIGHT_CONTROL L  &hmr RIGHT_SHIFT SEMI  &trans
+&kp LGUI  &hml LEFT_GUI Z    &trans               &trans     &trans       &trans       &trans     &trans  &trans  &trans  &trans  &trans                &trans                 &trans  &hmr RIGHT_GUI FSLH  &trans
+&trans    &trans             &trans               &kp LCTRL  &lt 1 SPACE  &lt 1 SPACE  &kp RCTRL  &trans  &trans  &trans
+            >;
+        };
+
         func_layer {
             display-name = "FUNC";
             bindings = <
@@ -210,17 +223,5 @@
             sensor-bindings = <&BLE_encoder>, <&inc_dec_kp LG(MINUS) LG(EQUAL)>;
         };
 
-        RES_layer {
-            // display-name = "RESERVE";
-
-            display-name = "WINDOWS";
-            bindings = <
-&trans    &trans             &trans               &trans     &trans       &trans       &trans     &trans  &trans  &trans  &trans  &trans                &trans                 &trans
-&trans    &trans             &trans               &trans     &trans       &trans       &trans     &trans  &trans  &trans  &trans  &trans
-&trans    &hml LEFT_SHIFT A  &hml LEFT_CONTROL S  &trans     &trans       &trans       &trans     &trans  &trans  &trans  &trans  &hmr RIGHT_CONTROL L  &hmr RIGHT_SHIFT SEMI  &trans
-&kp LGUI  &hml LEFT_GUI Z    &trans               &trans     &trans       &trans       &trans     &trans  &trans  &trans  &trans  &trans                &trans                 &trans  &hmr RIGHT_GUI FSLH  &trans
-&trans    &trans             &trans               &kp LCTRL  &lt 1 SPACE  &lt 1 SPACE  &kp RCTRL  &trans  &trans  &trans
-            >;
-        };
     };
 };
