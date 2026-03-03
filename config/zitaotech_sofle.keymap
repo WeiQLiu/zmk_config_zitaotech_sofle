@@ -165,7 +165,7 @@
         to-windows {
             // bindings = <&to 1>;
 
-            bindings = <&win_pure>;  // 使用宏而不是直接 &to 1
+            bindings = <&tog 1>;  // 使用宏而不是直接 &to 1
             key-positions = <1 2>;
             layers = <0>;
         };
