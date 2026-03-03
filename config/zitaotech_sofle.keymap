@@ -159,7 +159,7 @@
         };
 
         to-windows {
-            bindings = <&to 2>;
+            bindings = <&to 1>;
             key-positions = <1 2>;
             layers = <0 3>;
         };
@@ -189,7 +189,7 @@
 &kp TAB         &kp Q                &kp W            &kp E     &kp R        &kp T        &kp Y       &kp U       &kp I      &kp O      &kp P   &kp SQT
 &kp LEFT_SHIFT  &hml LEFT_SHIFT A    &hml LEFT_GUI S  &kp D     &kp F        &kp G        &mkp LCLK   &mkp LCLK   &kp H      &kp J      &kp K   &hmr RIGHT_GUI L  &hmr RIGHT_SHIFT SEMI  &kp ENTER
 &kp LCTRL       &hml LEFT_CONTROL Z  &kp X            &kp C     &kp V        &kp B        &kp PG_DN   &kp PG_UP   &mkp LCLK  &mkp RCLK  &kp N   &kp M             &kp COMMA              &kp DOT    &hmr RIGHT_CONTROL FSLH  &kp RSHIFT
-&mkp MB2        &mkp MB1             &kp LALT         &kp LGUI  &lt 1 SPACE  &lt 1 SPACE  &kp RGUI    &kp RALT    &mkp MB1   &mkp MB2
+&mkp MB2        &mkp MB1             &kp LALT         &kp LGUI  &lt 2 SPACE  &lt 2 SPACE  &kp RGUI    &kp RALT    &mkp MB1   &mkp MB2
             >;
 
             sensor-bindings =
@@ -197,16 +197,16 @@
                 <&inc_dec_kp PAGE_UP PAGE_DOWN>;
         };
 
-
         RES_layer {
             // display-name = "RESERVE";
+
             display-name = "WINDOWS";
             bindings = <
 &trans    &trans             &trans               &trans     &trans       &trans       &trans     &trans  &trans  &trans  &trans  &trans                &trans                 &trans
 &trans    &trans             &trans               &trans     &trans       &trans       &trans     &trans  &trans  &trans  &trans  &trans
 &trans    &hml LEFT_SHIFT A  &hml LEFT_CONTROL S  &trans     &trans       &trans       &trans     &trans  &trans  &trans  &trans  &hmr RIGHT_CONTROL L  &hmr RIGHT_SHIFT SEMI  &trans
 &kp LGUI  &hml LEFT_GUI Z    &trans               &trans     &trans       &trans       &trans     &trans  &trans  &trans  &trans  &trans                &trans                 &trans  &hmr RIGHT_GUI FSLH  &trans
-&trans    &trans             &trans               &kp LCTRL  &lt 1 SPACE  &lt 1 SPACE  &kp RCTRL  &trans  &trans  &trans
+&trans    &trans             &trans               &kp LCTRL  &lt 2 SPACE  &lt 2 SPACE  &kp RCTRL  &trans  &trans  &trans
             >;
         };
 
@@ -222,6 +222,5 @@
 
             sensor-bindings = <&BLE_encoder>, <&inc_dec_kp LG(MINUS) LG(EQUAL)>;
         };
-
     };
 };
