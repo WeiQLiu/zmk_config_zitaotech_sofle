@@ -207,11 +207,11 @@
 
             display-name = "WINDOWS";
             bindings = <
-&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
-&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
-&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
-&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
-&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans          &trans               &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans          &trans               &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans          &hml LEFT_SHIFT A    &hml LEFT_CONTROL S  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &hmr RIGHT_CONTROL L  &hmr RIGHT_SHIFT SEMI  &trans
+&kp LGUI      &hml LEFT_GUI Z  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &hmr RIGHT_GUI FSLH  &trans
+                &trans               &trans  &trans  &kp LCTRL  &trans  &trans  &kp RCTRL  &trans  &trans  &trans
             >;
         };
     };
