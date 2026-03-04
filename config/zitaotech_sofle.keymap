@@ -88,16 +88,15 @@
         };
     };
 
-/*
     behaviors {
-        inc_dec_mw: inc_dec_mw {
+        scroll_up_down: behavior_sensor_rotate_mouse_wheel_up_down {
             compatible = "zmk,behavior-sensor-rotate";
             #sensor-binding-cells = <0>;
-            bindings = <&msc 0 (-1)>, <&msc 0 1>; 
+            bindings = <&msc SCRL_UP>, <&msc SCRL_DOWN>;
+
             tap-ms = <20>;
-        };
     };
-*/
+
 
     combos {
         compatible = "zmk,combos";
