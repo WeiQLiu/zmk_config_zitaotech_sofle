@@ -88,6 +88,7 @@
         };
     };
 
+/*
     behaviors {
         inc_dec_mw: inc_dec_mw {
             compatible = "zmk,behavior-sensor-rotate";
@@ -96,7 +97,7 @@
             tap-ms = <20>;
         };
     };
-
+*/
 
     combos {
         compatible = "zmk,combos";
@@ -229,7 +230,7 @@
 
             sensor-bindings =
                 <&inc_dec_kp C_VOL_UP C_VOL_DN>,
-                <&inc_dec_mw>;
+                <&msc SCRL_UP SCRL_DN>;
                 // <&inc_dec_kp PAGE_UP PAGE_DOWN>;
         };
 
