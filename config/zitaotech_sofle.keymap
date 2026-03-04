@@ -88,6 +88,7 @@
         };
     };
 
+/*
     behaviors {
         scroll_up_down: behavior_sensor_rotate_mouse_wheel_up_down {
             compatible = "zmk,behavior-sensor-rotate";
@@ -96,7 +97,7 @@
 
             tap-ms = <20>;
     };
-
+*/
 
     combos {
         compatible = "zmk,combos";
@@ -229,7 +230,7 @@
 
             sensor-bindings =
                 <&inc_dec_kp C_VOL_UP C_VOL_DN>,
-                <&scroll_up_down>;
+                <&msc MOVE_Y(-20) MOVE_Y(20)>;
                 // <&inc_dec_kp PAGE_UP PAGE_DOWN>;
         };
 
