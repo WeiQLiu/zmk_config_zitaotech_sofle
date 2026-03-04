@@ -35,13 +35,6 @@
             tapping-term-ms = <500>;
             bindings = <&kp &kp>;
         };
-        // 在 behaviors 块内添加这段；我自己添加的
-        inc_dec_mw: inc_dec_mw {
-            compatible = "zmk,behavior-sensor-rotate";
-            #sensor-binding-cells = <2>;
-            bindings = <&mmv>, <&mmv>; // 注意：这里调用的是 mouse move/scroll 行为
-            tap-ms = <20>; //加上这个，防止系统识别不出太快的滚动
-        };
     };
 
     behaviors {
