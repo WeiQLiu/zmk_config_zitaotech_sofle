@@ -230,7 +230,7 @@
 
             sensor-bindings =
                 <&inc_dec_kp C_VOL_UP C_VOL_DN>,
-                <&msc SCRL_UP SCRL_DN>;
+                <&scroll_up_down>;
                 // <&inc_dec_kp PAGE_UP PAGE_DOWN>;
         };
 
