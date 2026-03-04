@@ -218,7 +218,8 @@
 
             sensor-bindings =
                 <&inc_dec_kp C_VOL_UP C_VOL_DN>,
-                <&inc_dec_kp PAGE_UP PAGE_DOWN>;
+                // <&inc_dec_kp PAGE_UP PAGE_DOWN>;
+                <&inc_dec_mw MS_WH_UP MS_WH_DN>;
         };
 
         func_layer {
@@ -248,11 +249,12 @@
 
             sensor-bindings =
                 <&inc_dec_kp C_VOL_UP C_VOL_DN>,
-                <&inc_dec_kp PAGE_UP PAGE_DOWN>;
+                // <&inc_dec_kp PAGE_UP PAGE_DOWN>;
+                <&inc_dec_mw MS_WH_UP MS_WH_DN>;
         };
 
         funcw_layer {
-            display-name = "FUNC_win";
+            display-name = "FUNCwin";
             bindings = <
 &kp GRAVE  &kp F1  &kp F2          &kp F3          &kp F4           &kp F5           &bt BT_CLR  &kp C_MUTE  &kp F6        &kp F7            &kp F8             &kp F9           &kp F10    &kp DEL
 &to 0      &none   &none           &kp UP_ARROW    &none            &out OUT_TOG     &kp F11     &kp F12     &kp UP_ARROW  &kp LEFT_BRACKET  &kp RIGHT_BRACKET  &kp BACKSLASH
