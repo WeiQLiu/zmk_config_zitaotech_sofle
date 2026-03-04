@@ -88,6 +88,16 @@
         };
     };
 
+    behaviors {
+        // 定义一个不需要额外参数的旋转行为
+        inc_dec_mw: inc_dec_mw {
+            compatible = "zmk,behavior-sensor-rotate";
+            #sensor-binding-cells = <0>; // 必须是 0，解决上次的报错
+            bindings = <&msc SCRL_UP>, <&msc SCRL_DN>; // 直接绑定滚动动作
+            tap-ms = <20>; 
+        }；
+    };
+
     combos {
         compatible = "zmk,combos";
 
@@ -219,7 +229,7 @@
 
             sensor-bindings =
                 <&inc_dec_kp C_VOL_UP C_VOL_DN>,
-                <&inc_dec_kp 0x47 0x48>;
+                <&inc_dec_mw SCRL_UP SCRL_DN>;
                 // <&inc_dec_kp PAGE_UP PAGE_DOWN>;
         };
 
