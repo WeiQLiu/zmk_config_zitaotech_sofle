@@ -89,14 +89,11 @@
     };
 
     behaviors {
-        // 旧版本 ZMK 定义鼠标滚轮的方法
         hw_scroll: hw_scroll {
             compatible = "zmk,behavior-sensor-rotate";
             #sensor-binding-cells = <0>;
-            // 旧版本通常使用 &kp 后接鼠标滚轮的宏
-            // 如果 MS_WH_UP 不识别，请确保顶部的 #include <dt-bindings/zmk/mouse.h> 存在
-            bindings = <&kp MS_WH_UP>, <&kp MS_WH_DN>;
-            tap-ms = <20>;
+            // 0x47 = Scroll Up, 0x48 = Scroll Down (HID Standard)
+            bindings = <&kp 0x47>, <&kp 0x48>;
         };
     };
 
