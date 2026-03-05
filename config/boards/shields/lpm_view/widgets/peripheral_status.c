@@ -22,6 +22,11 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include "peripheral_status.h"
 
 // ==================== 动画帧声明 ====================
+// 新加的：
+LV_IMG_DECLARE(figure0);
+LV_IMG_DECLARE(figure1);
+// 我注释的
+/*
 LV_IMG_DECLARE(bunnygirl1);
 LV_IMG_DECLARE(bunnygirl3);
 LV_IMG_DECLARE(bunnygirl6);
@@ -30,7 +35,7 @@ LV_IMG_DECLARE(bunnygirl12);
 LV_IMG_DECLARE(bunnygirl15);
 LV_IMG_DECLARE(bunnygirl18);
 LV_IMG_DECLARE(bunnygirl21);
-
+*/
 LV_IMG_DECLARE(landspace1);
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
@@ -53,10 +58,20 @@ struct art_state {
 };
 */
 
+// 我添加的
+// ==================== 动画数组 ====================
+static const lv_img_dsc_t *bunny_frames[] = {
+    &bongo_1,
+    &bongo_2,
+};
+
+// 我注释的
+/*
 static const lv_img_dsc_t *bunny_frames[] = {
     &bunnygirl1,  &bunnygirl3,  &bunnygirl6,  &bunnygirl9,
     &bunnygirl12, &bunnygirl15, &bunnygirl18, &bunnygirl21,
 };
+*/
 
 #define BUNNY_FRAME_COUNT (sizeof(bunny_frames) / sizeof(bunny_frames[0]))
 
