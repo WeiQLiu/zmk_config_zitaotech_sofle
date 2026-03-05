@@ -177,6 +177,11 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_img_set_src(astate.art, bunny_frames[0]);
     lv_obj_align(astate.art, LV_ALIGN_TOP_LEFT, 20, 0);
 
+    // -------- 这里是新增的反色处理代码 --------
+    lv_obj_set_style_img_recolor_opa(astate.art, LV_OPA_COVER, 0);
+    lv_obj_set_style_img_recolor(astate.art, lv_color_white(), 0); 
+    // ----------------------------------------
+    
     // 每秒切换一帧
     astate.timer = lv_timer_create(art_anim_timer_cb, 5000, &astate);
 
