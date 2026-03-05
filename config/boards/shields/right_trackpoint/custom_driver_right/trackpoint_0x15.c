@@ -104,8 +104,8 @@ static void trackpoint_poll_work(struct k_work *work) {
             if (space_pressed) {
                 /* Space 按住时作为滚轮 */
                 // 尝试放弃分级，直接使用固定的线性缩放，所以下面的大批量直接注释掉。
-                // int16_t scroll_x = 0, scroll_y = 0;
-                /*
+                int16_t scroll_x = 0, scroll_y = 0;
+                
                 if (abs(dy) >= 128) {
                     scroll_x = -dx / 64; // 原来是 24，改大可以减速
                     scroll_y = -dy / 64; // 原来是 24
@@ -128,7 +128,7 @@ static void trackpoint_poll_work(struct k_work *work) {
                     scroll_x = (dx > 0) ? -1 : (dx < 0) ? 1 : 0;
                     scroll_y = 0;
                 }
-                */
+                /*
                 int16_t scroll_x = -dx / 24;
                 int16_t scroll_y = -dy / 24;
 
@@ -138,7 +138,7 @@ static void trackpoint_poll_work(struct k_work *work) {
                     scroll_y = 0;
                 }
                 // 修改到这里结束。
-                
+                */
                 input_report_rel(dev, INPUT_REL_HWHEEL, scroll_x, false, K_FOREVER);
                 input_report_rel(dev, INPUT_REL_WHEEL, -scroll_y, true, K_FOREVER);
 
