@@ -17,11 +17,11 @@
 #define LV_ATTRIBUTE_MEM_ALIGN
 #endif
 
-#ifndef LV_ATTRIBUTE_IMG_下载
-#define LV_ATTRIBUTE_IMG_下载
+#ifndef LV_ATTRIBUTE_IMG_figure0
+#define LV_ATTRIBUTE_IMG_figure0
 #endif
 
-const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_下载 uint8_t 下载_map[] = {
+const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_figure0 uint8_t figure0_map[] = {
   0xf2, 0xf2, 0xf2, 0xff, 	/*Color of index 0*/
   0x09, 0x09, 0x09, 0xff, 	/*Color of index 1*/
 
@@ -358,12 +358,12 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_下载 ui
   0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xbb, 0xf8, 0xce, 0x08, 0x00, 0x00, 
 };
 
-const lv_img_dsc_t 下载 = {
+const lv_img_dsc_t figure0 = {
   .header.cf = LV_IMG_CF_INDEXED_1BIT,
   .header.always_zero = 0,
   .header.reserved = 0,
   .header.w = 152,
   .header.h = 331,
   .data_size = 6297,
-  .data = 下载_map,
+  .data = figure0_map,
 };
