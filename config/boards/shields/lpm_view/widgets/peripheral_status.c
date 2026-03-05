@@ -23,8 +23,9 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 // ==================== 动画帧声明 ====================
 // 新加的：
-LV_IMG_DECLARE(art);
-LV_IMG_DECLARE(bolt);
+LV_IMG_DECLARE(figure0);
+LV_IMG_DECLARE(figure1);
+LV_IMG_DECLARE(figure2);
 // LV_IMG_DECLARE(figure1);
 // 自己找的figure0 figure1并不好看。。
 
@@ -64,8 +65,9 @@ struct art_state {
 // 我添加的
 // ==================== 动画数组 ====================
 static const lv_img_dsc_t *bunny_frames[] = {
-    &art,
-    &bolt,
+    &figure0,
+    &figure1,
+    &figure2,
 };
 
 // 我注释的
