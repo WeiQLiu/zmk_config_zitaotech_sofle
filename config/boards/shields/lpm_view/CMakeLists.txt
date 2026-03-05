@@ -11,8 +11,9 @@ if(CONFIG_ZMK_DISPLAY AND CONFIG_NICE_VIEW_WIDGET_STATUS)
     zephyr_library_sources(widgets/peripheral_status.c)
     zephyr_library_sources(widgets/landspace/landspace1.c)
     # --- 新增的图片 ---
-    zephyr_library_sources(widgets/figure0.c)
-    zephyr_library_sources(widgets/figure1.c)
+    zephyr_library_sources(widgets/sword/figure0.c)
+    zephyr_library_sources(widgets/sword/figure1.c)
+    zephyr_library_sources(widgets/sword/figure2.c)
 
     # 暂时注释掉
     # zephyr_library_sources(widgets/bunnygirl_anima/bunnygirl1.c)
