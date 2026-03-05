@@ -157,7 +157,6 @@ static void trackpoint_poll_work(struct k_work *work) {
                 }
                 */
                 // 修改到这里结束。
-                */
                 input_report_rel(dev, INPUT_REL_HWHEEL, scroll_x, false, K_FOREVER);
                 input_report_rel(dev, INPUT_REL_WHEEL, -scroll_y, true, K_FOREVER);
 
