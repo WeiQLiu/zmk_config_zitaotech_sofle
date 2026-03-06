@@ -23,13 +23,35 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 // ==================== 动画帧声明 ====================
 // 新加的：
+/*
 LV_IMG_DECLARE(figure0);
 LV_IMG_DECLARE(figure1);
 LV_IMG_DECLARE(figure2);
 LV_IMG_DECLARE(jianlai);
 LV_IMG_DECLARE(yushi);
 LV_IMG_DECLARE(skeleton);
-
+*/
+// 太极图
+LV_IMG_DECLARE(resized_frame_1);
+LV_IMG_DECLARE(resized_frame_2);
+LV_IMG_DECLARE(resized_frame_3);
+LV_IMG_DECLARE(resized_frame_4);
+LV_IMG_DECLARE(resized_frame_5);
+LV_IMG_DECLARE(resized_frame_6);
+LV_IMG_DECLARE(resized_frame_7);
+LV_IMG_DECLARE(resized_frame_8);
+LV_IMG_DECLARE(resized_frame_9);
+LV_IMG_DECLARE(resized_frame_10);
+LV_IMG_DECLARE(resized_frame_11);
+LV_IMG_DECLARE(resized_frame_12);
+LV_IMG_DECLARE(resized_frame_13);
+LV_IMG_DECLARE(resized_frame_14);
+LV_IMG_DECLARE(resized_frame_15);
+LV_IMG_DECLARE(resized_frame_16);
+LV_IMG_DECLARE(resized_frame_17);
+LV_IMG_DECLARE(resized_frame_18);
+LV_IMG_DECLARE(resized_frame_19);
+LV_IMG_DECLARE(resized_frame_20);
 
 // 我注释的
 /*
@@ -67,12 +89,26 @@ struct art_state {
 // 我添加的
 // ==================== 动画数组 ====================
 static const lv_img_dsc_t *bunny_frames[] = {
-    &figure0,
-    &figure1,
-    &figure2,
-    &jianlai,
-    &yushi,
-    &skeleton,
+    &resized_frame_1,
+    &resized_frame_2,
+    &resized_frame_3,
+    &resized_frame_4,
+    &resized_frame_5,
+    &resized_frame_6,
+    &resized_frame_7,
+    &resized_frame_8,
+    &resized_frame_9,
+    &resized_frame_10,
+    &resized_frame_11,
+    &resized_frame_12,
+    &resized_frame_13,
+    &resized_frame_14,
+    &resized_frame_15,
+    &resized_frame_16,
+    &resized_frame_17,
+    &resized_frame_18,
+    &resized_frame_19,
+    &resized_frame_20,
 };
 
 // 我注释的
@@ -183,7 +219,7 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_obj_align(astate.art, LV_ALIGN_TOP_LEFT, 20, 0);
     
     // 每秒切换一帧
-    astate.timer = lv_timer_create(art_anim_timer_cb, 20000, &astate);
+    astate.timer = lv_timer_create(art_anim_timer_cb, 100, &astate); // 这个单位应该是ms
 
     lv_obj_set_user_data(widget->obj, &astate);
 
