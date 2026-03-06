@@ -26,8 +26,9 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 LV_IMG_DECLARE(figure0);
 LV_IMG_DECLARE(figure1);
 LV_IMG_DECLARE(figure2);
-// LV_IMG_DECLARE(figure1);
-// 自己找的figure0 figure1并不好看。。
+LV_IMG_DECLARE(jianlai);
+LV_IMG_DECLARE(yushi);
+
 
 // 我注释的
 /*
@@ -68,6 +69,8 @@ static const lv_img_dsc_t *bunny_frames[] = {
     &figure0,
     &figure1,
     &figure2,
+    &jianlai,
+    &yushi,
 };
 
 // 我注释的
