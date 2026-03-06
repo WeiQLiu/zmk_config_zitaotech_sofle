@@ -14,6 +14,9 @@ if(CONFIG_ZMK_DISPLAY AND CONFIG_NICE_VIEW_WIDGET_STATUS)
     zephyr_library_sources(widgets/sword/figure0.c)
     zephyr_library_sources(widgets/sword/figure1.c)
     zephyr_library_sources(widgets/sword/figure2.c)
+    zephyr_library_sources(widgets/sword/jianlai.c)
+    zephyr_library_sources(widgets/sword/yushi.c)
+    
 
     # 暂时注释掉
     # zephyr_library_sources(widgets/bunnygirl_anima/bunnygirl1.c)
