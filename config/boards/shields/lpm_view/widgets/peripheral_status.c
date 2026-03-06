@@ -28,6 +28,7 @@ LV_IMG_DECLARE(figure1);
 LV_IMG_DECLARE(figure2);
 LV_IMG_DECLARE(jianlai);
 LV_IMG_DECLARE(yushi);
+LV_IMG_DECLARE(skeleton);
 
 
 // 我注释的
@@ -71,6 +72,7 @@ static const lv_img_dsc_t *bunny_frames[] = {
     &figure2,
     &jianlai,
     &yushi,
+    &skeleton，
 };
 
 // 我注释的
