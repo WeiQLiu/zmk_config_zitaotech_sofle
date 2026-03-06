@@ -17,6 +17,29 @@ if(CONFIG_ZMK_DISPLAY AND CONFIG_NICE_VIEW_WIDGET_STATUS)
     zephyr_library_sources(widgets/sword/jianlai.c)
     zephyr_library_sources(widgets/sword/yushi.c)
     zephyr_library_sources(widgets/sword/skeleton.c)
+
+    # 八卦图
+    zephyr_library_sources(widgets/bagau1/resized_frame_1.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_2.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_3.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_4.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_5.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_6.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_7.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_8.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_9.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_10.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_11.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_12.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_13.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_14.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_15.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_16.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_17.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_18.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_19.c)
+    zephyr_library_sources(widgets/bagau1/resized_frame_20.c)
+
     
 
     # 暂时注释掉
