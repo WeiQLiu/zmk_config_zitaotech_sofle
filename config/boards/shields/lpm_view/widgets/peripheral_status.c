@@ -21,9 +21,6 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #include "peripheral_status.h"
 
-// 定义一个全局变量，记录副手最后感知到活跃的时间
-static uint32_t last_anim_activity = 0; // 用于动画自动停止。
-
 // ==================== 动画帧声明 ====================
 // 新加的：
 /*
@@ -200,29 +197,6 @@ ZMK_SUBSCRIPTION(widget_peripheral_status, zmk_split_peripheral_status_changed);
 
 // ================= 22帧动画回调 =================
 static void art_anim_timer_cb(lv_timer_t *timer) {
-    // 【核心逻辑】：
-    // k_uptime_get() 获取系统当前运行了多少毫秒
-    // zmk_display_get_last_activity() 获取上一次按键操作的时间戳
-    // 30000 毫秒 = 30 秒 (你可以根据需求改为 10000 即 10 秒)
-    /*
-    if (k_uptime_get() - zmk_display_get_last_activity() > 3000) {
-        // 如果超过 30 秒没动键盘，直接返回，不执行后面的切图和刷新逻辑
-        // 这就是“动画自动睡眠”，此时屏幕保持静止，Flash 停止读取，CPU 降频
-        return; 
-    }
-    */
-    // 上面这个有问题，使用自己定义的额时间变量
-    uint32_t now = k_uptime_get();
-    // 如果刚开机（last_anim_activity 为 0），先给它赋个值防止卡死
-    if (last_anim_activity == 0) {
-        last_anim_activity = now;
-    }
-    
-    // 太久不操作就静止
-    if (now - last_anim_activity > 3000) {
-        return; 
-    }
-    
     struct art_state *state = timer->user_data;
     state->frame_index = (state->frame_index + 1) % BUNNY_FRAME_COUNT;
     lv_img_set_src(state->art, bunny_frames[state->frame_index]);
@@ -245,7 +219,7 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_obj_align(astate.art, LV_ALIGN_TOP_LEFT, 20, 0);
     
     // 每秒切换一帧
-    astate.timer = lv_timer_create(art_anim_timer_cb, 300, &astate); // 这个单位应该是ms
+    astate.timer = lv_timer_create(art_anim_timer_cb, 500, &astate); // 这个单位应该是ms
 
     lv_obj_set_user_data(widget->obj, &astate);
 
@@ -253,25 +227,7 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget_battery_status_init();
     widget_peripheral_status_init();
 
-    last_anim_activity = k_uptime_get(); // 确保开机即动，我添加的
-
     return 0;
 }
 
 lv_obj_t *zmk_widget_status_obj(struct zmk_widget_status *widget) { return widget->obj; }
-
-// 只要副手检测到任何按键动作（或者是小红点的移动），就更新 last_anim_activity。
-#include <zmk/events/keycode_state_changed.h>
-
-// 之前我们尝试过的按键监听逻辑，现在正好用来更新时间
-#include <zmk/events/split_peripheral_status_changed.h>
-
-int activity_monitor_listener(const zmk_event_t *eh) {
-    // 只要收到主手的任何状态更新，就刷新时间戳
-    last_anim_activity = k_uptime_get();
-    return 0;
-}
-
-ZMK_LISTENER(activity_monitor_listener, activity_monitor_listener);
-// 关键：订阅这个副手必有的状态改变事件
-ZMK_SUBSCRIPTION(activity_monitor_listener, zmk_split_peripheral_status_changed);
