@@ -244,18 +244,20 @@ lv_obj_t *zmk_widget_status_obj(struct zmk_widget_status *widget) { return widge
 // 专门设置一个闲置层给他用吧。
 #include <zmk/events/layer_state_changed.h>
 
-// 宏调用，生成图层事件逻辑
 ZMK_EVENT_IMPL(zmk_layer_state_changed);
 
 int anim_layer_listener(const zmk_event_t *eh) {
     struct zmk_layer_state_changed *ev = as_zmk_layer_state_changed(eh);
     if (ev != NULL) {
-        // 如果当前激活的最高层是第 3 层 (索引为 2)，则关闭动画
-        // 这里的数字 2 代表你 keymap 里的第三个图层
-        if (ev->index == 2) { 
-            animation_enabled = false;
-        } else {
-            animation_enabled = true;
+        // 假设你的 Mac 层索引是 1 (也就是 keymap 里的第二个层)
+        // ev->layer 就是改变的那个层的编号
+        // ev->state 为 true 表示该层被开启了
+        if (ev->layer == 1) { 
+            if (ev->state) {
+                animation_enabled = true;  // 进入 Mac 层，开太极
+            } else {
+                animation_enabled = false; // 退出 Mac 层，停太极
+            }
         }
     }
     return 0;
