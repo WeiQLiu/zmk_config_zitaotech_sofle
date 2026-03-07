@@ -21,6 +21,9 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #include "peripheral_status.h"
 
+bool animation_enabled = true; // 放全局位置，定义一个变量，来指定动画会不会继续动。
+
+
 // ==================== 动画帧声明 ====================
 // 新加的：
 /*
@@ -197,6 +200,9 @@ ZMK_SUBSCRIPTION(widget_peripheral_status, zmk_split_peripheral_status_changed);
 
 // ================= 22帧动画回调 =================
 static void art_anim_timer_cb(lv_timer_t *timer) {
+    if (!animation_enabled) { return; } // 开关关了就不动
+    // 添加这个，如果 animation 这个变量关闭了的话，动画就不再继续动了。
+    
     struct art_state *state = timer->user_data;
     state->frame_index = (state->frame_index + 1) % BUNNY_FRAME_COUNT;
     lv_img_set_src(state->art, bunny_frames[state->frame_index]);
@@ -231,3 +237,20 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
 }
 
 lv_obj_t *zmk_widget_status_obj(struct zmk_widget_status *widget) { return widget->obj; }
+
+// 需要用到zmk的事件监听，这里想省去复杂的behavior注册，直接使用一个现成的自定义事件处理：使用F24进行对开关变量进行调节。
+// 一直到最后都是新加的。
+#include <zmk/events/keycode_state_changed.h>
+
+int anim_toggle_listener(const zmk_event_t *eh) {
+    struct zmk_keycode_state_changed *ev = as_zmk_keycode_state_changed(eh);
+    // 这里假设我们用一个不常用的键位，比如 F24 来做开关
+    if (ev && ev->keycode == 0x73 && ev->state) { // 0x73 通常对应 F24
+         animation_enabled = !animation_enabled;
+    }
+    return 0;
+}
+
+ZMK_LISTENER(anim_toggle_listener, anim_toggle_listener);
+ZMK_SUBSCRIPTION(anim_toggle_listener, zmk_keycode_state_changed);
+// 到这里都是新加的。
