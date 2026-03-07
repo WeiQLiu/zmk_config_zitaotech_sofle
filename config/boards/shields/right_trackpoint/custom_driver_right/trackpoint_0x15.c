@@ -39,8 +39,8 @@ static const struct device *motion_gpio_dev;
 /* ========= 指数加速参数 ========= */
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
 #define TP_EXP_BASE 1.04f
-#define TP_SPEED_SCALE 0.06f
-#define TP_MAX_MULT 2.5f
+#define TP_SPEED_SCALE 0.14f
+#define TP_MAX_MULT 3.0f
 #endif
 
 /* ========= 全局状态 ========= */
@@ -207,7 +207,7 @@ static void trackpoint_poll_work(struct k_work *work) {
                 */
                 //想使用另外一种
                 uint8_t tp_led_brt = custom_led_get_last_valid_brightness();
-                float tp_factor = 0.5f + 0.01f * tp_led_brt;
+                float tp_factor = 0.6f + 0.02f * tp_led_brt;
 
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
                 uint32_t delta = now - last_packet_time;
@@ -216,8 +216,8 @@ static void trackpoint_poll_work(struct k_work *work) {
                 float exp_mult = 1.0f;
 #endif
 
-                float fx = 2 * dx * 0.5f * tp_factor * exp_mult;
-                float fy = 2 * dy * 0.5f * tp_factor * exp_mult;
+                float fx = 5 / 2 * dx * 0.5f * tp_factor * exp_mult;
+                float fy = 5 / 2 * dy * 0.5f * tp_factor * exp_mult;
 
                 input_report_rel(dev, INPUT_REL_X, -(int)fx, false, K_FOREVER);
                 input_report_rel(dev, INPUT_REL_Y, -(int)fy, true, K_FOREVER);
