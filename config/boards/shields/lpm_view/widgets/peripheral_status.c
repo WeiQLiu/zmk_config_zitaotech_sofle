@@ -242,6 +242,9 @@ lv_obj_t *zmk_widget_status_obj(struct zmk_widget_status *widget) { return widge
 // 一直到最后都是新加的。
 #include <zmk/events/keycode_state_changed.h>
 
+// 关键点 1：必须添加这一行，它负责生成 as_zmk_keycode_state_changed 函数
+ZMK_EVENT_IMPL(zmk_keycode_state_changed);
+
 int anim_toggle_listener(const zmk_event_t *eh) {
     struct zmk_keycode_state_changed *ev = as_zmk_keycode_state_changed(eh);
     // 这里假设我们用一个不常用的键位，比如 F24 来做开关
