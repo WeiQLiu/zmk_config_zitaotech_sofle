@@ -240,20 +240,27 @@ lv_obj_t *zmk_widget_status_obj(struct zmk_widget_status *widget) { return widge
 
 // 需要用到zmk的事件监听，这里想省去复杂的behavior注册，直接使用一个现成的自定义事件处理：使用F24进行对开关变量进行调节。
 // 一直到最后都是新加的。
-#include <zmk/events/keycode_state_changed.h>
+// 由于是分体，使用按键触发，其实信号传不到副手的内部，不会生效；曲线救国的方式只有：背光，层之类的，选择层吧，背光平时不开的。
+// 专门设置一个闲置层给他用吧。
+#include <zmk/events/layer_state_changed.h>
 
-// 关键点 1：必须添加这一行，它负责生成 as_zmk_keycode_state_changed 函数
-ZMK_EVENT_IMPL(zmk_keycode_state_changed);
+// 宏调用，生成图层事件逻辑
+ZMK_EVENT_IMPL(zmk_layer_state_changed);
 
-int anim_toggle_listener(const zmk_event_t *eh) {
-    struct zmk_keycode_state_changed *ev = as_zmk_keycode_state_changed(eh);
-    // 这里假设我们用一个不常用的键位，比如 F24 来做开关
-    if (ev && ev->keycode == 0x73 && ev->state) { // 0x73 通常对应 F24
-         animation_enabled = !animation_enabled;
+int anim_layer_listener(const zmk_event_t *eh) {
+    struct zmk_layer_state_changed *ev = as_zmk_layer_state_changed(eh);
+    if (ev != NULL) {
+        // 如果当前激活的最高层是第 3 层 (索引为 2)，则关闭动画
+        // 这里的数字 2 代表你 keymap 里的第三个图层
+        if (ev->index == 2) { 
+            animation_enabled = false;
+        } else {
+            animation_enabled = true;
+        }
     }
     return 0;
 }
 
-ZMK_LISTENER(anim_toggle_listener, anim_toggle_listener);
-ZMK_SUBSCRIPTION(anim_toggle_listener, zmk_keycode_state_changed);
+ZMK_LISTENER(anim_layer_listener, anim_layer_listener);
+ZMK_SUBSCRIPTION(anim_layer_listener, zmk_layer_state_changed);
 // 到这里都是新加的。
