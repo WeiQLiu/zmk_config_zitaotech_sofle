@@ -211,8 +211,9 @@ static void art_anim_timer_cb(lv_timer_t *timer) {
         return; 
     }
     */
+    uint32_t now = k_uptime_get();
     // 上面这个有问题，使用自己定义的额时间变量。
-    if (k_uptime_get() - last_anim_activity > 3000) {
+    if (now - last_anim_activity > 3000) {
         return; 
     }
     
@@ -246,6 +247,8 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     widget_battery_status_init();
     widget_peripheral_status_init();
 
+    last_anim_activity = k_uptime_get(); // 确保开机即动，我添加的
+
     return 0;
 }
 
@@ -255,13 +258,14 @@ lv_obj_t *zmk_widget_status_obj(struct zmk_widget_status *widget) { return widge
 #include <zmk/events/keycode_state_changed.h>
 
 // 之前我们尝试过的按键监听逻辑，现在正好用来更新时间
-ZMK_EVENT_IMPL(zmk_keycode_state_changed);
+#include <zmk/events/split_peripheral_status_changed.h>
 
 int activity_monitor_listener(const zmk_event_t *eh) {
-    // 只要有按键按下或松开的消息经过副手，就刷新时间戳
+    // 只要收到主手的任何状态更新，就刷新时间戳
     last_anim_activity = k_uptime_get();
     return 0;
 }
 
 ZMK_LISTENER(activity_monitor_listener, activity_monitor_listener);
-ZMK_SUBSCRIPTION(activity_monitor_listener, zmk_keycode_state_changed);
+// 关键：订阅这个副手必有的状态改变事件
+ZMK_SUBSCRIPTION(activity_monitor_listener, zmk_split_peripheral_status_changed);
