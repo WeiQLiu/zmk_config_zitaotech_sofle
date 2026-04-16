@@ -56,6 +56,7 @@ struct a320_data {
  *   Ctrl key listener
  * ========================= */
 static bool ctrl_pressed = false;
+static bool space_pressed = false; // 我尝试添加的。
 
 static int ctrl_listener_cb(const zmk_event_t *eh) {
     const struct zmk_position_state_changed *ev = as_zmk_position_state_changed(eh);
@@ -142,21 +143,21 @@ static void a320_poll_work_handler(struct k_work *work) {
         int16_t dx = 0, dy = 0;
 
         if (data->read_motion(data->dev, &dx, &dy) == 0 && (dx || dy)) {
-            bool capslock = current_indicators & HID_INDICATORS_CAPS_LOCK;
+            // bool space_pressed = current_indicators & HID_INDICATORS_CAPS_LOCK;
 
             if (ctrl_pressed) {
                 dx /= 2;
                 dy /= 2;
             }
 
-            if (!capslock) {
+            if (!space_pressed) {
                 uint8_t brt = indicator_tp_get_last_valid_brightness();
                 float factor = 0.4f + 0.01f * brt;
                 dx = dx * 3 / 2 * factor;
                 dy = dy * 3 / 2 * factor;
             }
 
-            if (capslock) {
+            if (space_pressed) {
                 input_report_rel(data->dev, INPUT_REL_WHEEL, -dy / 16, true, K_FOREVER);
             } else {
                 input_report_rel(data->dev, INPUT_REL_X, dx, false, K_FOREVER);
