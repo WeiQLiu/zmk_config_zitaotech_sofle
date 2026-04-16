@@ -55,9 +55,10 @@ struct a320_data {
 /* =========================
  *   Ctrl key listener
  * ========================= */
-static bool ctrl_pressed = false;
-static bool space_pressed = false; // 我尝试添加的。
+// static bool ctrl_pressed = false;
+// static bool space_pressed = false; // 我尝试添加的。
 
+/*
 static int ctrl_listener_cb(const zmk_event_t *eh) {
     const struct zmk_position_state_changed *ev = as_zmk_position_state_changed(eh);
     if (!ev) {
@@ -72,6 +73,41 @@ static int ctrl_listener_cb(const zmk_event_t *eh) {
 
 ZMK_LISTENER(a320_ctrl_listener, ctrl_listener_cb);
 ZMK_SUBSCRIPTION(a320_ctrl_listener, zmk_position_state_changed);
+*/ 
+// 上面这段我注释掉了。
+//从这里
+/* =========================
+ * Key State Listener (Ctrl & Space)
+ * ========================= */
+static bool ctrl_pressed = false;
+static bool space_pressed = false;
+
+static int a320_key_listener_cb(const zmk_event_t *eh) {
+    const struct zmk_position_state_changed *ev = as_zmk_position_state_changed(eh);
+    if (!ev) {
+        return 0;
+    }
+
+    // 处理 Ctrl 键 (位置 37) - 用于降速
+    if (ev->position == 37) {
+        ctrl_pressed = ev->state;
+    }
+
+    // 处理 Space 键 (位置 60) - 用于触发滚动
+    if (ev->position == 60) {
+        space_pressed = ev->state;
+        // LOG_INF 可以帮你调试，确认位置对不对
+        LOG_INF("Space %s", space_pressed ? "HELD" : "RELEASED");
+    }
+
+    return 0;
+}
+
+// 定义一个通用的监听器名
+ZMK_LISTENER(a320_key_listener, a320_key_listener_cb);
+// 订阅位置状态改变事件
+ZMK_SUBSCRIPTION(a320_key_listener, zmk_position_state_changed);
+// 到这里
 
 /* =========================
  *   HID indicator listener
