@@ -88,8 +88,8 @@ static int a320_key_listener_cb(const zmk_event_t *eh) {
         return 0;
     }
 
-    // 处理 Ctrl 键 (位置 37) - 用于降速
-    if (ev->position == 37) {
+    // 处理 Ctrl 键 (位置 37) - 用于降速，这个排序他估计搞错了，但是ctrl不好用，我改成f。但这个命名我就不改了，就这样吧。之前不是ctrl，其实是l。
+    if (ev->position == 30 ) {
         ctrl_pressed = ev->state;
     }
 
@@ -183,7 +183,7 @@ static void a320_poll_work_handler(struct k_work *work) {
 
             if (ctrl_pressed) {
                 dx /= 2;
-                dy /= 2;
+                dy /= 2; // 原先是2，暂时来看，足够了。
             }
 
             if (!space_pressed) {
