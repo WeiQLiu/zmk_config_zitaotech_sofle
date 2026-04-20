@@ -181,16 +181,18 @@ static void a320_poll_work_handler(struct k_work *work) {
         if (data->read_motion(data->dev, &dx, &dy) == 0 && (dx || dy)) {
             // bool space_pressed = current_indicators & HID_INDICATORS_CAPS_LOCK;
 
+            // 其实是按住f按键，懒得修改这里的变量名字了。
+            // 另外，这个逻辑是不合理的，应该是按住快速移动，然后平时是一种较慢的状态，没人会没事大范围移动指针（指代跨屏，平时的还是精确控制习惯一一点。）
             if (ctrl_pressed) {
-                dx /= 2;
-                dy /= 2; // 原先是2，暂时来看，足够了。
+                dx *= 3/2;
+                dy *= 3/2; // 原先是除以2.
             }
 
             if (!space_pressed) {
                 uint8_t brt = indicator_tp_get_last_valid_brightness();
                 float factor = 0.4f + 0.01f * brt;
-                dx = dx * 3 / 2 * factor;
-                dy = dy * 3 / 2 * factor;
+                dx = dx / 2 * factor;
+                dy = dy / 2 * factor; // 原来是乘以3/2
             }
 
             static float scroll_remainder_y = 0.0f; // 必须是静态变量，用于跨帧保存余数。为下面那段服务的。
