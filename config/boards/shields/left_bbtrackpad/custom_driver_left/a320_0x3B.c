@@ -193,8 +193,38 @@ static void a320_poll_work_handler(struct k_work *work) {
                 dy = dy * 3 / 2 * factor;
             }
 
+            static float scroll_remainder_y = 0.0f; // 必须是静态变量，用于跨帧保存余数。为下面那段服务的。
             if (space_pressed) {
-                input_report_rel(data->dev, INPUT_REL_WHEEL, -dy / 16, true, K_FOREVER);
+                // input_report_rel(data->dev, INPUT_REL_WHEEL, -dy / 16, true, K_FOREVER); // 注释掉线性发展，做一个线性的滚动
+                // 1. 先应用基础放大系数 (让低速移动不至于太小)
+                uint8_t brt = indicator_tp_get_last_valid_brightness();
+                float factor = 0.4f + 0.01f * brt;
+                float processed_dy = dy * 1.5f * factor;
+            
+                // 2. 动态灵敏度（非线性处理）
+                float abs_dy = fabsf(processed_dy);
+                float speed_multiplier;
+                
+                if (abs_dy < 5.0f) {
+                    speed_multiplier = 0.8f;  // 低速：稍微压制，保持精准
+                } else if (abs_dy > 20.0f) {
+                    speed_multiplier = 1.5f;  // 高速：增加动力
+                } else {
+                    speed_multiplier = 1.0f;  // 中速：保持常规
+                }
+            
+                // 3. 加上上一帧攒下的“余数”
+                // 注意：这里的 16.0f 是你的分母，我们现在用浮点数来攒它
+                scroll_remainder_y += (-processed_dy * speed_multiplier) / 16.0f;
+            
+                // 4. 提取整数部分进行上报
+                int report_val = (int)scroll_remainder_y;
+                if (report_val != 0) {
+                    input_report_rel(data->dev, INPUT_REL_WHEEL, report_val, true, K_FOREVER);
+                    // 减去已经报掉的部分，剩下的继续留在池子里
+                    scroll_remainder_y -= report_val;
+                }
+                
             } else {
                 input_report_rel(data->dev, INPUT_REL_X, dx, false, K_FOREVER);
                 input_report_rel(data->dev, INPUT_REL_Y, dy, true, K_FOREVER);
