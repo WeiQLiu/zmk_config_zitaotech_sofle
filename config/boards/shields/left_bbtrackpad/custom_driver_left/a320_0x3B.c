@@ -184,8 +184,8 @@ static void a320_poll_work_handler(struct k_work *work) {
             // 其实是按住f按键，懒得修改这里的变量名字了。
             // 另外，这个逻辑是不合理的，应该是按住快速移动，然后平时是一种较慢的状态，没人会没事大范围移动指针（指代跨屏，平时的还是精确控制习惯一一点。）
             if (ctrl_pressed) {
-                dx *= 3/2;
-                dy *= 3/2; // 原先是除以2.
+                dx *= 5;
+                dy *= 5; // 原先是除以2.
             }
 
             if (!space_pressed) {
