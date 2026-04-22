@@ -80,6 +80,7 @@ ZMK_SUBSCRIPTION(a320_ctrl_listener, zmk_position_state_changed);
  * Key State Listener (Ctrl & Space)
  * ========================= */
 static bool ctrl_pressed = false;
+static bool J_pressed = false;
 static bool space_pressed = false;
 
 static int a320_key_listener_cb(const zmk_event_t *eh) {
@@ -90,20 +91,13 @@ static int a320_key_listener_cb(const zmk_event_t *eh) {
 
     // 处理 Ctrl 键 (位置 37) - 用于降速，这个排序他估计搞错了，但是ctrl不好用，我改成f。但这个命名我就不改了，就这样吧。之前不是ctrl，其实是l。
     // 按住F或者J，就可以触发高度移动。
-    /*
-    if (ev->position == 30 || ev->position == 35) {
+    if (ev->position == 30) {
         ctrl_pressed = ev->state;
     }
-    */
-    // 建议改为这样，避免一个键覆盖另一个键
-    if (ev->position == 30 || ev->position == 35) {
-        if (ev->state) {
-            ctrl_pressed = true;  // 只要按下任意一个，就是开启
-        } else {
-            // 这里需要更小心：只有当 F 和 J 都松开时，才能设为 false
-            // 简单处理可以先判断当前抬起的是哪个，但最稳妥是单独记录状态
-        }
+    if (ev->position == 35) {
+        J_pressed = ev->state;
     }
+
     
     // 处理 Space 键 (位置 60) - 用于触发滚动
     if (ev->position == 60) {
@@ -199,12 +193,16 @@ static void a320_poll_work_handler(struct k_work *work) {
                 dx *= 4;
                 dy *= 4; // 原先是除以2.
             }
-
+            if (J_pressed) {
+                dx *= 4;
+                dy *= 4; // 原先是除以2.
+            }
+             
             if (!space_pressed) {
                 uint8_t brt = indicator_tp_get_last_valid_brightness();
                 float factor = 0.4f + 0.01f * brt;
-                dx = dx * 3 / 4 * factor;
-                dy = dy * 3 / 4 * factor; // 原来是乘以3/2
+                dx = dx * 2 / 2 * factor;
+                dy = dy * 2 / 2 * factor; // 原来是乘以3/2
             }
 
             static float scroll_remainder_y = 0.0f; // 必须是静态变量，用于跨帧保存余数。为下面那段服务的。
