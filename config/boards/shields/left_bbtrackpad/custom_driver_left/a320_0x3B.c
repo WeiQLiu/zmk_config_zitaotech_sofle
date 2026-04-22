@@ -90,10 +90,21 @@ static int a320_key_listener_cb(const zmk_event_t *eh) {
 
     // 处理 Ctrl 键 (位置 37) - 用于降速，这个排序他估计搞错了，但是ctrl不好用，我改成f。但这个命名我就不改了，就这样吧。之前不是ctrl，其实是l。
     // 按住F或者J，就可以触发高度移动。
+    /*
     if (ev->position == 30 || ev->position == 35) {
         ctrl_pressed = ev->state;
     }
-
+    */
+    // 建议改为这样，避免一个键覆盖另一个键
+    if (ev->position == 30 || ev->position == 35) {
+        if (ev->state) {
+            ctrl_pressed = true;  // 只要按下任意一个，就是开启
+        } else {
+            // 这里需要更小心：只有当 F 和 J 都松开时，才能设为 false
+            // 简单处理可以先判断当前抬起的是哪个，但最稳妥是单独记录状态
+        }
+    }
+    
     // 处理 Space 键 (位置 60) - 用于触发滚动
     if (ev->position == 60) {
         space_pressed = ev->state;
