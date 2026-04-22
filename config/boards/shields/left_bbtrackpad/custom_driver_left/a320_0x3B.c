@@ -192,8 +192,8 @@ static void a320_poll_work_handler(struct k_work *work) {
             if (!space_pressed) {
                 uint8_t brt = indicator_tp_get_last_valid_brightness();
                 float factor = 0.4f + 0.01f * brt;
-                dx = dx * 1.5 / 2 * factor;
-                dy = dy * 1.5 / 2 * factor; // 原来是乘以3/2
+                dx = dx * 3 / 4 * factor;
+                dy = dy * 3 / 4 * factor; // 原来是乘以3/2
             }
 
             static float scroll_remainder_y = 0.0f; // 必须是静态变量，用于跨帧保存余数。为下面那段服务的。
