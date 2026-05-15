@@ -281,7 +281,7 @@
 &kp TAB         &kp Q              &kp W                &kp E             &kp R          &kp T        &kp Y          &kp U              &kp I      &kp O          &kp P   &kp BSLH
 &kp LEFT_SHIFT  &hml LEFT_SHIFT A  &hml LEFT_CONTROL S  &kp D             &hml_none 0 F  &kp G        &mkp LCLK      &mkp LCLK          &kp H      &hml_none 0 J  &kp K   &hmr RIGHT_CONTROL L  &hmr RIGHT_SHIFT SEMI  &kp ENTER
 &kp LGUI        &hml LEFT_GUI Z    &kp X                &kp C             &kp V          &kp B        &kp PG_DN      &kp PG_UP          &mkp LCLK  &mkp RCLK      &kp N   &kp M                 &kp COMMA              &kp DOT    &hmr RIGHT_GUI FSLH  &kp RSHIFT
-&mkp MB2        &mkp MB1           &kp RIGHT_CONTROL    &alt_shift_dance  &lt 3 SPACE    &lt 3 SPACE  &kp RIGHT_ALT  &kp RIGHT_CONTROL  &mkp MB1   &mkp MB2
+&mkp MB2        &mkp MB1           &kp LEFT_CONTROL     &alt_shift_dance  &lt 3 SPACE    &lt 3 SPACE  &kp RIGHT_ALT  &kp RIGHT_CONTROL  &mkp MB1   &mkp MB2
             >;
 
             sensor-bindings =
