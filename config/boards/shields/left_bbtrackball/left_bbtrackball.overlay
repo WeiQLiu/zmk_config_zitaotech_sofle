@@ -50,7 +50,7 @@
 
 &bbtrackball_listener {
     status = "okay";
-    input-processors = <&zip_temp_layer 3 600>,
+    input-processors = <&zip_temp_layer 4 600>,
     <&ip_behaviors0>,
     <&ip_behaviors1>,
     <&ip_behaviors2>,
