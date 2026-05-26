@@ -1,3 +1,4 @@
+// 小红点设置
 /*
  * TrackPoint HID over I2C Driver (Zephyr Input Subsystem)
  * Interrupt-driven version (minimal modification)
@@ -153,7 +154,7 @@ struct trackpoint_data {
 
 /* ========= 指数加速计算 ========= */
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
-#define TP_MAX_MULT 2.0f
+#define TP_MAX_MULT 3.0f
 static inline float trackpoint_exponential_factor(int8_t dx, int8_t dy, uint32_t delta_ms) {
     if (delta_ms == 0)
         delta_ms = 1;
