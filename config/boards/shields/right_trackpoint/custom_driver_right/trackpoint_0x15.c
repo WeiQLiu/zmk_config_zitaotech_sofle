@@ -1,4 +1,4 @@
-// 小红点设置
+// 小红点设置，小红点
 /*
  * TrackPoint HID over I2C Driver (Zephyr Input Subsystem)
  * Interrupt-driven version (minimal modification)
