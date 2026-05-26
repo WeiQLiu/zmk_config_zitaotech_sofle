@@ -255,6 +255,31 @@
         };
     };
 
+    macros {
+        // 强制进入 Windows 层并清理其他所有层级
+
+        win_pure: win_pure {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            wait-ms = <10>;
+            tap-ms = <10>;
+            bindings = <&to 0 &to 1>;
+        };
+
+        // 强制回到 Mac 层并清理
+
+        mac_pure: mac_pure {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            wait-ms = <10>;
+            tap-ms = <10>;
+            bindings = <&to 0>;
+        };
+    };
+
+
+
+
     keymap {
         compatible = "zmk,keymap";
 
