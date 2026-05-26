@@ -117,7 +117,7 @@ struct trackpoint_data {
     uint32_t last_packet_time;
 };
 
-/* ========= ⭐ 完美复刻：旧版本的纯正指数加速算法 ========= */
+/* ========= ⭐ 100% 旧版本指数加速算法复刻 ========= */
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
 static inline float trackpoint_exponential_factor(int8_t dx, int8_t dy, uint32_t delta_ms) {
     if (delta_ms == 0) {
@@ -161,7 +161,7 @@ static int trackpoint_read_packet(const struct device *dev, int8_t *dx, int8_t *
     return 0;
 }
 
-/* ========= 核心中断 Work 回调函数 ========= */
+/* ========= 核心工作队列回调函数 ========= */
 static void trackpoint_work_cb(struct k_work *work) {
     struct trackpoint_data *data = CONTAINER_OF(work, struct trackpoint_data, work);
     const struct device *dev = data->dev;
@@ -185,7 +185,7 @@ static void trackpoint_work_cb(struct k_work *work) {
     bool capslock = current_indicators & HID_INDICATORS_CAPS_LOCK;
 
     /* ========================================================================= */
-    /* 1. 方向键模式 (按住 34 号键触发) —— 同样采用旧版无限制线性缩放逻辑修复      */
+    /* 1. 方向键模式 (按住 34 号键触发) —— 修复为键盘真实按键 & 旧版线性逻辑控制 */
     /* ========================================================================= */
     if (arrow_key_pressed) {
         int16_t move_x = 0;
@@ -221,58 +221,57 @@ static void trackpoint_work_cb(struct k_work *work) {
         }
 
     /* ========================================================================= */
-    /* 2. 滚轮模式 (按住 61 号 Space 或开启大写锁定) —— ⭐ 100% 完整移植旧版逻辑    */
+    /* 2. 滚轮模式 (按住 61 号 Space 或开启大写锁定) —— ⭐ 100% 还原旧版本纯线性   */
     /* ========================================================================= */
     } else if (scroll_key_pressed || capslock) {
         int16_t scroll_x = 0;
         int16_t scroll_y = 0;
 
-        // 1. 先处理 X 轴 (水平滚动) 旧版原版无轴锁定限制
+        // 完全按照旧版本第 1 点：先处理 X 轴 (水平滚动)，无方向锁定
         if (abs(dx) >= 2) {
             scroll_x = -dx / 32; 
             if (scroll_x == 0) scroll_x = (dx > 0) ? -1 : 1;
         }
 
-        // 2. 再处理 Y 轴 (垂直滚动) 旧版原版无轴锁定限制
+        // 完全按照旧版本第 2 点：再处理 Y 轴 (垂直滚动)，无方向锁定
         if (abs(dy) >= 2) {
             scroll_y = -dy / 16; 
             if (scroll_y == 0) scroll_y = (dy > 0) ? -1 : 1;
         }
 
-        // 直接上报相对滚轮事件
-        input_report_rel(dev, INPUT_REL_HWHEEL, scroll_x, false, K_NO_WAIT);
-        input_report_rel(dev, INPUT_REL_WHEEL, -scroll_y, true, K_NO_WAIT);
+        // 严格同步旧版本：直接呈报系统，使用 K_FOREVER
+        input_report_rel(dev, INPUT_REL_HWHEEL, scroll_x, false, K_FOREVER);
+        input_report_rel(dev, INPUT_REL_WHEEL, -scroll_y, true, K_FOREVER);
 
-        // 维持旧版最终改定的 30ms 顺滑节奏发包
+        // 仅在发生有效滚轮位移时才延迟 30ms，杜绝静止时的发包阻塞
         if (scroll_x != 0 || scroll_y != 0) {
             k_sleep(K_MSEC(30)); 
         }
 
     /* ========================================================================= */
-    /* 3. 正常鼠标移动模式 —— ⭐ 100% 完整移植旧版放大速度与旧版指数曲线参数      */
+    /* 3. 正常鼠标移动模式 —— ⭐ 100% 逐字恢复旧版本核心手感与公式                */
     /* ========================================================================= */
     } else {
+        // 严格对齐旧版记录：0.4f 基础系数 + LED亮度因子
         uint8_t tp_led_brt = custom_led_get_last_valid_brightness();
-        // 旧版基础因子计算
-        float tp_factor = 0.6f + 0.02f * tp_led_brt;
+        float tp_factor = 0.4f + 0.01f * tp_led_brt;
 
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
         uint32_t delta = now - data->last_packet_time;
-        // 使用上面完全复刻旧版的 powf 指数加速算法
         float exp_mult = trackpoint_exponential_factor(dx, dy, delta);
 #else
         float exp_mult = 1.0f;
 #endif
 
-        // 36号按键按下速度直接减半
+        // 36号 Slow Key 控制减半
         float slow_mult = slow_key_pressed ? SLOW_KEY_MULTIPLIER : 1.0f;
 
-        // 完全采用旧版公式：5/2 * dx * 0.5 * tp_factor * exp_mult * slow_mult
-        float fx = 2.5f * dx * 0.5f * tp_factor * exp_mult * slow_mult;
-        float fy = 2.5f * dy * 0.5f * tp_factor * exp_mult * slow_mult;
+        // 严格复刻旧版原始计算：dx * 5 / 2 * tp_factor * 指数加速 * 减速键
+        float fx = (float)dx * 2.5f * tp_factor * exp_mult * slow_mult;
+        float fy = (float)dy * 2.5f * tp_factor * exp_mult * slow_mult;
 
-        input_report_rel(dev, INPUT_REL_X, -(int)fx, false, K_NO_WAIT);
-        input_report_rel(dev, INPUT_REL_Y, -(int)fy, true, K_NO_WAIT);
+        input_report_rel(dev, INPUT_REL_X, -(int)fx, false, K_FOREVER);
+        input_report_rel(dev, INPUT_REL_Y, -(int)fy, true, K_FOREVER);
     }
 
     data->last_packet_time = now;
