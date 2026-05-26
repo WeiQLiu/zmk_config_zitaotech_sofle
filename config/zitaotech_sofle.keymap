@@ -358,7 +358,7 @@
 &kp TAB   &kp Q     &kp W      &kp E    &kp R    &kp T                                                        &none      &mkp MB3   &none   &none         &none  &none
 &kp CAPS  &kp A     &kp S      &kp D    &kp F    &kp G      &mkp LCLK                        &mkp LCLK        &none      &mkp LCLK  &none   &none         &none  &none
 &kp LSHFT &kp Z     &kp X      &kp C    &kp V    &kp B      &msc SCRL_DOWN   &msc SCRL_UP    &none  &none     &none      &mkp RCLK  &none   &msc SCRL_UP  &none  &none
-                    &kp LCTRL  &kp LALT &none    &kp SPACE  &to 0                                   &to 0     &kp SPACE  &to 0      &none   &msc SCRL_DOWN
+                    &kp LCTRL  &kp LGUI &kp LALT &kp SPACE  &to 0                                   &to 0     &kp SPACE  &to 0      &none   &msc SCRL_DOWN
             >;
         };
 

@@ -326,8 +326,8 @@ layers:
   - ''
   - ''
   - LCTRL
+  - LGUI
   - LALT
-  - ''
   - SPACE
   - {t: MAC, h: toggle}
   - {t: MAC, h: toggle}
