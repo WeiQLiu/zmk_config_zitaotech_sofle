@@ -176,6 +176,7 @@ static int trackpoint_read_packet(const struct device *dev, int8_t *dx, int8_t *
 }
 
 /* ========= 核心工作队列回调函数 ========= */
+/* ========= 核心工作队列回调函数 ========= */
 static void trackpoint_work_cb(struct k_work *work) {
     struct trackpoint_data *data = CONTAINER_OF(work, struct trackpoint_data, work);
     const struct device *dev = data->dev;
@@ -201,9 +202,6 @@ static void trackpoint_work_cb(struct k_work *work) {
     bool capslock = current_indicators & HID_INDICATORS_CAPS_LOCK;
 
     /* ========================================================================= */
-    /* 1. 方向键模式 (按住 34 号键触发) —— 彻底剥离卡顿阻尼，回归纯线性释放模式   */
-    /* ========================================================================= */
-    /* ========================================================================= */
     /* 1. 方向键模式 (按住 34 号键触发) —— 彻底剥离卡顿阻尼，回归纯线性释放模式    */
     /* ========================================================================= */
     if (arrow_key_pressed) {
@@ -225,7 +223,7 @@ static void trackpoint_work_cb(struct k_work *work) {
         if ((move_x != 0 || move_y != 0) && (now - last_arrow_time >= 50)) {
             last_arrow_time = now;
         
-            // ⭐ 换回新版系统放行的虚拟物理键码，且大括号结构已完全修正
+            // 换回新版系统放行的虚拟物理键码
             if (move_x > 0) {
                 input_report_key(dev, INPUT_BTN_0, 1, true, K_NO_WAIT);
                 input_report_key(dev, INPUT_BTN_0, 0, true, K_NO_WAIT);
@@ -241,13 +239,12 @@ static void trackpoint_work_cb(struct k_work *work) {
                 input_report_key(dev, INPUT_BTN_3, 1, true, K_NO_WAIT);
                 input_report_key(dev, INPUT_BTN_3, 0, true, K_NO_WAIT);
             }
-        } // <--- 🟢 之前就是漏了这个闭合大括号，导致整个发包被吞了
-    } // <--- 🟢 闭合 if (arrow_key_pressed)
-
+        } 
+    } 
     /* ========================================================================= */
-    /* 2. 滚轮模式 —— ⭐ 扔掉所有残余量(residue)和复杂阻尼，还原100%顺畅无锁状态  */
+    /* 2. 滚轮模式 —— ⭐ 扔掉所有残余量(residue)和复杂阻尼，还原100%顺畅无锁状态   */
     /* ========================================================================= */
-    } else if (scroll_key_pressed || capslock) {
+    else if (scroll_key_pressed || capslock) {
         int16_t scroll_x = 0;
         int16_t scroll_y = 0;
 
@@ -270,11 +267,11 @@ static void trackpoint_work_cb(struct k_work *work) {
         if (scroll_x != 0 || scroll_y != 0) {
             k_sleep(K_MSEC(30)); 
         }
-
+    } 
     /* ========================================================================= */
-    /* 3. 正常鼠标移动模式 —— ⭐ 采用最精准的 0.4f + 0.01f 老版曲线公式          */
+    /* 3. 正常鼠标移动模式 —— ⭐ 采用最精准的 0.4f + 0.01f 老版曲线公式           */
     /* ========================================================================= */
-    } else {
+    else {
         uint8_t tp_led_brt = custom_led_get_last_valid_brightness();
         float tp_factor = 0.4f + 0.01f * tp_led_brt;
 
@@ -298,7 +295,8 @@ static void trackpoint_work_cb(struct k_work *work) {
     last_scroll_key_pressed = scroll_key_pressed;
     last_arrow_key_pressed = arrow_key_pressed;
     data->last_packet_time = now;
-}
+} // <--- 🟢 整个函数的末尾在这里正常结束
+
 
 /* ========= GPIO 中断接收服务 ========= */
 static void motion_isr(const struct device *port, struct gpio_callback *cb, uint32_t pins) {
