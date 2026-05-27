@@ -217,24 +217,29 @@ static void trackpoint_work_cb(struct k_work *work) {
             if (move_y == 0) move_y = (dy > 0) ? 1 : -1;
         }
 
+        // 用时间戳控制发包节奏（每 50ms 吐一次按键脉冲），既不阻塞总线，又能让系统完美识别
+        static uint32_t last_arrow_time = 0;
+        if ((move_x != 0 || move_y != 0) && (now - last_arrow_time >= 50)) {
+            last_arrow_time = now;
+        
         // ⭐ 核心修复：发完 1 (按下) 后，睡 20ms，再发 0 (抬起)
         if (move_x > 0) {
             input_report_key(dev, INPUT_KEY_RIGHT, 1, true, K_FOREVER);
-            k_sleep(K_MSEC(20));
+            // k_sleep(K_MSEC(20));
             input_report_key(dev, INPUT_KEY_RIGHT, 0, true, K_FOREVER);
         } else if (move_x < 0) {
             input_report_key(dev, INPUT_KEY_LEFT, 1, true, K_FOREVER);
-            k_sleep(K_MSEC(20));
+            // k_sleep(K_MSEC(20));
             input_report_key(dev, INPUT_KEY_LEFT, 0, true, K_FOREVER);
         }
         
         if (move_y > 0) {
             input_report_key(dev, INPUT_KEY_DOWN, 1, true, K_FOREVER);
-            k_sleep(K_MSEC(20));
+            // k_sleep(K_MSEC(20));
             input_report_key(dev, INPUT_KEY_DOWN, 0, true, K_FOREVER);
         } else if (move_y < 0) {
             input_report_key(dev, INPUT_KEY_UP, 1, true, K_FOREVER);
-            k_sleep(K_MSEC(20));
+            // k_sleep(K_MSEC(20));
             input_report_key(dev, INPUT_KEY_UP, 0, true, K_FOREVER);
         }
         
