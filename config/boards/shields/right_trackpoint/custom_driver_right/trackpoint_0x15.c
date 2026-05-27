@@ -203,6 +203,9 @@ static void trackpoint_work_cb(struct k_work *work) {
     /* ========================================================================= */
     /* 1. 方向键模式 (按住 34 号键触发) —— 彻底剥离卡顿阻尼，回归纯线性释放模式   */
     /* ========================================================================= */
+    /* ========================================================================= */
+    /* 1. 方向键模式 (按住 34 号键触发) —— 彻底剥离卡顿阻尼，回归纯线性释放模式    */
+    /* ========================================================================= */
     if (arrow_key_pressed) {
         int16_t move_x = 0;
         int16_t move_y = 0;
@@ -222,34 +225,24 @@ static void trackpoint_work_cb(struct k_work *work) {
         if ((move_x != 0 || move_y != 0) && (now - last_arrow_time >= 50)) {
             last_arrow_time = now;
         
-        // ⭐ 核心修复：发完 1 (按下) 后，睡 20ms，再发 0 (抬起)
-        if (move_x > 0) {
-            input_report_key(dev, INPUT_KEY_RIGHT, 1, true, K_FOREVER);
-            // k_sleep(K_MSEC(20));
-            input_report_key(dev, INPUT_KEY_RIGHT, 0, true, K_FOREVER);
-        } else if (move_x < 0) {
-            input_report_key(dev, INPUT_KEY_LEFT, 1, true, K_FOREVER);
-            // k_sleep(K_MSEC(20));
-            input_report_key(dev, INPUT_KEY_LEFT, 0, true, K_FOREVER);
-        }
-        
-        if (move_y > 0) {
-            input_report_key(dev, INPUT_KEY_DOWN, 1, true, K_FOREVER);
-            // k_sleep(K_MSEC(20));
-            input_report_key(dev, INPUT_KEY_DOWN, 0, true, K_FOREVER);
-        } else if (move_y < 0) {
-            input_report_key(dev, INPUT_KEY_UP, 1, true, K_FOREVER);
-            // k_sleep(K_MSEC(20));
-            input_report_key(dev, INPUT_KEY_UP, 0, true, K_FOREVER);
-        }
-        
-
-
-
-        
-        if (move_x != 0 || move_y != 0) {
-            k_sleep(K_MSEC(40)); 
-        }
+            // ⭐ 换回新版系统放行的虚拟物理键码，且大括号结构已完全修正
+            if (move_x > 0) {
+                input_report_key(dev, INPUT_BTN_0, 1, true, K_NO_WAIT);
+                input_report_key(dev, INPUT_BTN_0, 0, true, K_NO_WAIT);
+            } else if (move_x < 0) {
+                input_report_key(dev, INPUT_BTN_1, 1, true, K_NO_WAIT);
+                input_report_key(dev, INPUT_BTN_1, 0, true, K_NO_WAIT);
+            }
+            
+            if (move_y > 0) {
+                input_report_key(dev, INPUT_BTN_2, 1, true, K_NO_WAIT);
+                input_report_key(dev, INPUT_BTN_2, 0, true, K_NO_WAIT);
+            } else if (move_y < 0) {
+                input_report_key(dev, INPUT_BTN_3, 1, true, K_NO_WAIT);
+                input_report_key(dev, INPUT_BTN_3, 0, true, K_NO_WAIT);
+            }
+        } // <--- 🟢 之前就是漏了这个闭合大括号，导致整个发包被吞了
+    } // <--- 🟢 闭合 if (arrow_key_pressed)
 
     /* ========================================================================= */
     /* 2. 滚轮模式 —— ⭐ 扔掉所有残余量(residue)和复杂阻尼，还原100%顺畅无锁状态  */
