@@ -1,3 +1,4 @@
+// 小红点设置，小红点
 /*
  * TrackPoint HID over I2C Driver (Zephyr Input Subsystem)
  * Interrupt-driven version (Successfully Restored to Old-Version Speed & Curve)
@@ -36,6 +37,12 @@ static struct k_mutex trackpoint_i2c_mutex;
 K_THREAD_STACK_DEFINE(tp_workq_stack, TP_WORKQ_STACK_SIZE);
 static struct k_work_q tp_workq;
 
+/* ========================================================================= */
+/* 鼠标与滚轮可调参数 (保持Kconfig映射，防止编译报错，但核心算法已回归旧版) */
+/* ========================================================================= */
+#define SCROLL_X_DIR (-CONFIG_TRACKPOINT_SCROLL_X_DIR)
+#define SCROLL_Y_DIR CONFIG_TRACKPOINT_SCROLL_Y_DIR
+
 /* ========= ⭐ 完美复刻：旧版本专属指数加速参数 ========= */
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
 #define TP_EXP_BASE 1.04f
@@ -63,6 +70,8 @@ static uint32_t last_activity_time = 0;
 static bool scroll_key_pressed = false;
 static bool arrow_key_pressed = false;
 static bool slow_key_pressed = false;
+static bool last_scroll_key_pressed = false; 
+static bool last_arrow_key_pressed = false;
 
 /* ==== HID indicators ==== */
 static zmk_hid_indicators_t current_indicators;
@@ -113,11 +122,15 @@ struct trackpoint_data {
     const struct device *dev;
     struct k_work work;
     struct gpio_callback motion_cb_data;
-    struct k_work_delayable enable_irq_work;
+    struct k_work_delayable enable_irq_work; 
     uint32_t last_packet_time;
+    int16_t scroll_residue_x; // 留空保持结构体兼容，代码中不用
+    int16_t scroll_residue_y;
+    int16_t arrow_residue_x;
+    int16_t arrow_residue_y;
 };
 
-/* ========= ⭐ 100% 旧版本指数加速算法复刻 ========= */
+/* ========= ⭐ 100% 旧版本纯正 powf 指数加速算法 ========= */
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
 static inline float trackpoint_exponential_factor(int8_t dx, int8_t dy, uint32_t delta_ms) {
     if (delta_ms == 0) {
@@ -171,6 +184,8 @@ static void trackpoint_work_cb(struct k_work *work) {
     if (now - last_activity_time > TRACKPOINT_WDT_TIMEOUT) {
         LOG_WRN("TrackPoint watchdog recovery");
         last_activity_time = now;
+        last_scroll_key_pressed = scroll_key_pressed;
+        last_arrow_key_pressed = arrow_key_pressed;
         return;
     }
 
@@ -185,12 +200,13 @@ static void trackpoint_work_cb(struct k_work *work) {
     bool capslock = current_indicators & HID_INDICATORS_CAPS_LOCK;
 
     /* ========================================================================= */
-    /* 1. 方向键模式 (按住 34 号键触发) —— 修复为键盘真实按键 & 旧版线性逻辑控制 */
+    /* 1. 方向键模式 (按住 34 号键触发) —— 彻底剥离卡顿阻尼，回归纯线性释放模式   */
     /* ========================================================================= */
     if (arrow_key_pressed) {
         int16_t move_x = 0;
         int16_t move_y = 0;
 
+        // 直接采用老版本无方向轴锁定的纯线性逻辑
         if (abs(dx) >= 2) {
             move_x = dx / 16; 
             if (move_x == 0) move_x = (dx > 0) ? 1 : -1;
@@ -201,19 +217,19 @@ static void trackpoint_work_cb(struct k_work *work) {
         }
 
         if (move_x > 0) {
-            input_report_key(dev, KEY_RIGHT, 1, true, K_NO_WAIT);
-            input_report_key(dev, KEY_RIGHT, 0, true, K_NO_WAIT);
+            input_report_key(dev, INPUT_KEY_RIGHT, 1, true, K_NO_WAIT);
+            input_report_key(dev, INPUT_KEY_RIGHT, 0, true, K_NO_WAIT);
         } else if (move_x < 0) {
-            input_report_key(dev, KEY_LEFT, 1, true, K_NO_WAIT);
-            input_report_key(dev, KEY_LEFT, 0, true, K_NO_WAIT);
+            input_report_key(dev, INPUT_KEY_LEFT, 1, true, K_NO_WAIT);
+            input_report_key(dev, INPUT_KEY_LEFT, 0, true, K_NO_WAIT);
         }
 
         if (move_y > 0) {
-            input_report_key(dev, KEY_DOWN, 1, true, K_NO_WAIT);
-            input_report_key(dev, KEY_DOWN, 0, true, K_NO_WAIT);
+            input_report_key(dev, INPUT_KEY_DOWN, 1, true, K_NO_WAIT);
+            input_report_key(dev, INPUT_KEY_DOWN, 0, true, K_NO_WAIT);
         } else if (move_y < 0) {
-            input_report_key(dev, KEY_UP, 1, true, K_NO_WAIT);
-            input_report_key(dev, KEY_UP, 0, true, K_NO_WAIT);
+            input_report_key(dev, INPUT_KEY_UP, 1, true, K_NO_WAIT);
+            input_report_key(dev, INPUT_KEY_UP, 0, true, K_NO_WAIT);
         }
 
         if (move_x != 0 || move_y != 0) {
@@ -221,38 +237,36 @@ static void trackpoint_work_cb(struct k_work *work) {
         }
 
     /* ========================================================================= */
-    /* 2. 滚轮模式 (按住 61 号 Space 或开启大写锁定) —— ⭐ 100% 还原旧版本纯线性   */
+    /* 2. 滚轮模式 —— ⭐ 扔掉所有残余量(residue)和复杂阻尼，还原100%顺畅无锁状态  */
     /* ========================================================================= */
     } else if (scroll_key_pressed || capslock) {
         int16_t scroll_x = 0;
         int16_t scroll_y = 0;
 
-        // 完全按照旧版本第 1 点：先处理 X 轴 (水平滚动)，无方向锁定
+        // 恢复老版原装无轴锁定的方向缩放
         if (abs(dx) >= 2) {
-            scroll_x = -dx / 32; 
-            if (scroll_x == 0) scroll_x = (dx > 0) ? -1 : 1;
+            scroll_x = (dx * SCROLL_X_DIR) / 32; 
+            if (scroll_x == 0) scroll_x = (dx * SCROLL_X_DIR > 0) ? 1 : -1;
         }
 
-        // 完全按照旧版本第 2 点：再处理 Y 轴 (垂直滚动)，无方向锁定
         if (abs(dy) >= 2) {
-            scroll_y = -dy / 16; 
-            if (scroll_y == 0) scroll_y = (dy > 0) ? -1 : 1;
+            scroll_y = (dy * SCROLL_Y_DIR) / 16; 
+            if (scroll_y == 0) scroll_y = (dy * SCROLL_Y_DIR > 0) ? 1 : -1;
         }
 
-        // 严格同步旧版本：直接呈报系统，使用 K_FOREVER
+        // 呈报相对位置，使用稳定不丢包的 K_FOREVER
         input_report_rel(dev, INPUT_REL_HWHEEL, scroll_x, false, K_FOREVER);
-        input_report_rel(dev, INPUT_REL_WHEEL, -scroll_y, true, K_FOREVER);
+        input_report_rel(dev, INPUT_REL_WHEEL, scroll_y, true, K_FOREVER);
 
-        // 仅在发生有效滚轮位移时才延迟 30ms，杜绝静止时的发包阻塞
+        // 只有有真实输出时才进行 30ms 顺滑防抖，防止日常空扫发包挂起
         if (scroll_x != 0 || scroll_y != 0) {
             k_sleep(K_MSEC(30)); 
         }
 
     /* ========================================================================= */
-    /* 3. 正常鼠标移动模式 —— ⭐ 100% 逐字恢复旧版本核心手感与公式                */
+    /* 3. 正常鼠标移动模式 —— ⭐ 采用最精准的 0.4f + 0.01f 老版曲线公式          */
     /* ========================================================================= */
     } else {
-        // 严格对齐旧版记录：0.4f 基础系数 + LED亮度因子
         uint8_t tp_led_brt = custom_led_get_last_valid_brightness();
         float tp_factor = 0.4f + 0.01f * tp_led_brt;
 
@@ -263,10 +277,9 @@ static void trackpoint_work_cb(struct k_work *work) {
         float exp_mult = 1.0f;
 #endif
 
-        // 36号 Slow Key 控制减半
         float slow_mult = slow_key_pressed ? SLOW_KEY_MULTIPLIER : 1.0f;
 
-        // 严格复刻旧版原始计算：dx * 5 / 2 * tp_factor * 指数加速 * 减速键
+        // 老版纯正公式：dx * 2.5 * 基础因子 * 指数加速 * 减速
         float fx = (float)dx * 2.5f * tp_factor * exp_mult * slow_mult;
         float fy = (float)dy * 2.5f * tp_factor * exp_mult * slow_mult;
 
@@ -274,6 +287,8 @@ static void trackpoint_work_cb(struct k_work *work) {
         input_report_rel(dev, INPUT_REL_Y, -(int)fy, true, K_FOREVER);
     }
 
+    last_scroll_key_pressed = scroll_key_pressed;
+    last_arrow_key_pressed = arrow_key_pressed;
     data->last_packet_time = now;
 }
 
@@ -307,6 +322,10 @@ static int trackpoint_init(const struct device *dev) {
     k_mutex_init(&trackpoint_i2c_mutex);
 
     data->dev = dev;
+    data->scroll_residue_x = 0;
+    data->scroll_residue_y = 0;
+    data->arrow_residue_x = 0;
+    data->arrow_residue_y = 0;
     data->last_packet_time = k_uptime_get_32();
 
     k_work_init(&data->work, trackpoint_work_cb);
@@ -322,7 +341,7 @@ static int trackpoint_init(const struct device *dev) {
     k_work_init_delayable(&data->enable_irq_work, trackpoint_enable_irq_work_cb);
     k_work_schedule(&data->enable_irq_work, K_MSEC(200));
 
-    LOG_INF("TrackPoint Driver Initialized (Old Pure Config Mode)");
+    LOG_INF("TrackPoint Driver Initialized (Hybrid Pure Speed Mode)");
     return 0;
 }
 
