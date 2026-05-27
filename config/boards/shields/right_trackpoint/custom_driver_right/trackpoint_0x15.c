@@ -204,6 +204,8 @@ static void trackpoint_work_cb(struct k_work *work) {
     /* ========================================================================= */
     /* 1. 方向键模式 (按住 34 号键触发) —— 彻底剥离卡顿阻尼，回归纯线性释放模式    */
     /* ========================================================================= */
+    /* 1. 方向键模式 (按住 34 号键触发) —— 彻底剥离卡顿阻尼，回归纯线性释放模式   */
+    /* ========================================================================= */
     if (arrow_key_pressed) {
         int16_t move_x = 0;
         int16_t move_y = 0;
@@ -223,24 +225,25 @@ static void trackpoint_work_cb(struct k_work *work) {
         if ((move_x != 0 || move_y != 0) && (now - last_arrow_time >= 50)) {
             last_arrow_time = now;
         
-            // 换回新版系统放行的虚拟物理键码
-            if (move_x > 0) {
+            // 🟢 方向修正：根据你反馈的“全颠倒”，将大于0和小于0对应的虚拟键码互换
+            if (move_x < 0) {         // 改变判定方向
                 input_report_key(dev, INPUT_BTN_0, 1, true, K_NO_WAIT);
                 input_report_key(dev, INPUT_BTN_0, 0, true, K_NO_WAIT);
-            } else if (move_x < 0) {
+            } else if (move_x > 0) {  // 改变判定方向
                 input_report_key(dev, INPUT_BTN_1, 1, true, K_NO_WAIT);
                 input_report_key(dev, INPUT_BTN_1, 0, true, K_NO_WAIT);
             }
             
-            if (move_y > 0) {
+            if (move_y < 0) {         // 改变判定方向
                 input_report_key(dev, INPUT_BTN_2, 1, true, K_NO_WAIT);
                 input_report_key(dev, INPUT_BTN_2, 0, true, K_NO_WAIT);
-            } else if (move_y < 0) {
+            } else if (move_y > 0) {  // 改变判定方向
                 input_report_key(dev, INPUT_BTN_3, 1, true, K_NO_WAIT);
                 input_report_key(dev, INPUT_BTN_3, 0, true, K_NO_WAIT);
             }
         } 
-    } 
+    }
+        
     /* ========================================================================= */
     /* 2. 滚轮模式 —— ⭐ 扔掉所有残余量(residue)和复杂阻尼，还原100%顺畅无锁状态   */
     /* ========================================================================= */
