@@ -245,47 +245,57 @@ static void trackpoint_work_cb(struct k_work *work) {
     }
         
     /* ========================================================================= */
-    /* 2. 滚轮模式 —— ⭐ 滚轮专属高动态指数加速曲线（轻推极慢，重推刷屏）        */
+    /* 2. 滚轮模式 —— ⭐ 独立大幂次指数加速（基础极小，爆发极大）                */
     /* ========================================================================= */
     else if (scroll_key_pressed || capslock) {
         int16_t scroll_x = 0;
         int16_t scroll_y = 0;
 
-        // 只要硬件有读数，就立刻无缝进入处理逻辑
         if (dx != 0 || dy != 0) {
-            
-#ifdef CONFIG_TRACKPOINT_EXPONENTIAL
-            uint32_t delta = now - data->last_packet_time;
-            if (delta > TRACKPOINT_WDT_TIMEOUT) {
-                delta = 10;
-            }
-            // 1. 🟢 允许所有读数（包括 ±1）全部参与指数加速计算，实现绝对无缝过渡
-            float scroll_exp_mult = trackpoint_exponential_factor(dx, dy, delta);
-#else
             float scroll_exp_mult = 1.0f;
-#endif
 
-            // 2. 🟢 大幅度减小分母（从 48/24 缩减到 8.0f 和 4.0f），释放极速刷屏的潜力
-            // 当你大力推时，scroll_exp_mult 暴涨到 3.0，分子变大，速度将呈指数级飞快提升！
-            float fx_scroll = ((float)dx * SCROLL_X_DIR) / 8.0f * scroll_exp_mult; 
-            float fy_scroll = ((float)dy * SCROLL_Y_DIR) / 4.0f * scroll_exp_mult;
+            // 1. 🟢 计算滚轮专属的超强指数加速因子
+            float dist = fabsf(dx) + fabsf(dy);
+            uint32_t delta = now - data->last_packet_time;
+            if (delta == 0) delta = 1;
+            if (delta > TRACKPOINT_WDT_TIMEOUT) delta = 10;
 
-            // 3. 🟢 使用真正的截断或四舍五入，让真正的物理浮点数决定是否发包
+            float speed = dist / (float)delta;
+
+            if (dist >= 1.0f) {
+                /* -----------------------------------------------------------
+                 * 🔴 手感核心调校参数说明：
+                 * powf(底数, speed / 缩放因子)
+                 * - 想让快推时“更疯狂地起飞”：增大底数（如 1.15f）或减小缩放因子（如 0.08f）
+                 * - 想让慢推时“更死板、更慢”：减小底数（如 1.08f）或增大缩放因子（如 0.15f）
+                 * ----------------------------------------------------------- */
+                scroll_exp_mult = powf(1.2f, speed / 0.10f);  
+
+                // 允许滚轮最高爆发 8.0 倍速（原先指针只有 3.0）
+                if (scroll_exp_mult > 8.0f) {
+                    scroll_exp_mult = 8.0f;
+                }
+            }
+
+            // 2. 🟢 基础分母加大（回归 32.0f 和 16.0f），确保“基础足够小”
+            // 这样在慢推时，由于 scroll_exp_mult 接近 1.0，fx/fy 算出来极其微小
+            float fx_scroll = ((float)dx * SCROLL_X_DIR) / 96.0f * scroll_exp_mult; 
+            float fy_scroll = ((float)dy * SCROLL_Y_DIR) / 48.0f * scroll_exp_mult;
+
             scroll_x = (int16_t)roundf(fx_scroll);
             scroll_y = (int16_t)roundf(fy_scroll);
 
-            // 4. 🟢 保底补偿：只有当 fx_scroll 算出来确实连 0.5 都不到（导致 roundf 变成 0）
-            // 但手指又确实在推时，才给 1 或 -1 的微动，确保绝对不丢包、能精准微调
+            // 3. 🟢 极慢速保底：如果手在推，但上面算出来四舍五入是 0，强制给 1 反馈
+            // 这保证了基础再小也绝对不会出现“推了不动”的断层感
             if (dx != 0 && scroll_x == 0) scroll_x = (dx * SCROLL_X_DIR > 0) ? 1 : -1;
             if (dy != 0 && scroll_y == 0) scroll_y = (dy * SCROLL_Y_DIR > 0) ? 1 : -1;
 
-            // 呈报给系统
+            // 4. ⭐ 完美同步打包投递
             input_report_rel(dev, INPUT_REL_HWHEEL, scroll_x, false, K_NO_WAIT);
             input_report_rel(dev, INPUT_REL_WHEEL, scroll_y, true, K_NO_WAIT);
 
-            // 5. 🟢 降低防抖睡眠：从 30ms 缩短到 10ms
-            // 中断模式下，把睡眠时间留长了会严重限制大推时的发包频率，导致大力推时“快不起来”
-            k_sleep(K_MSEC(10)); 
+            // 5. 🟢 缩短阻塞延迟到 5ms，完全释放大动量下的发包频率
+            k_sleep(K_MSEC(5)); 
         }
     }
 
