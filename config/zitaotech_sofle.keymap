@@ -360,8 +360,8 @@
             bindings = <
 &trans     &trans     &trans  &trans  &trans      &trans  &trans                                &kp C_MUTE    &trans     &trans      &trans  &trans         &trans  &trans
 &trans     &trans     &trans  &trans  &trans      &trans                                                      &trans     &mkp MB3    &trans  &trans         &trans  &trans
-&trans     &trans     &trans  &trans  &mkp LCLK   &trans  &mkp LCLK                             &mkp LCLK     &trans     &mkp LCLK   &trans  &msc SCRL_UP   &trans  &trans
-&trans     &trans     &trans  &trans  &mkp RCLK   &trans  &msc SCRL_DOWN  &msc SCRL_UP      &trans  &trans    &trans     &mkp RCLK     &trans  &msc SCRL_DOWN  &trans  &trans
+&trans     &trans     &trans  &trans  &trans      &trans  &mkp LCLK                             &mkp LCLK     &trans     &mkp LCLK   &trans  &msc SCRL_UP   &trans  &trans
+&trans     &trans     &trans  &trans  &trans      &trans  &msc SCRL_DOWN  &msc SCRL_UP      &trans  &trans    &trans     &mkp RCLK     &trans  &msc SCRL_DOWN  &trans  &trans
                             &mkp MB2  &mkp MB1  &trans  &trans  &trans                    &trans  &trans           &trans         &mkp MB1  &mkp MB2
             >;
         };
