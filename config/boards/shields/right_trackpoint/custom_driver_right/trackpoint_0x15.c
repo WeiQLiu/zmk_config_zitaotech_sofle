@@ -245,41 +245,76 @@ static void trackpoint_work_cb(struct k_work *work) {
     }
         
     /* ========================================================================= */
-    /* 2. 滚轮模式 —— ⭐ 扔掉所有残余量(residue)和复杂阻尼，还原100%顺畅无锁状态   */
+    /* 2. 滚轮模式 —— ⭐ 升级为指针同款“指数加速”曲线，快慢自如               */
     /* ========================================================================= */
     else if (scroll_key_pressed || capslock) {
         int16_t scroll_x = 0;
         int16_t scroll_y = 0;
 
-        // 恢复老版原装无轴锁定的方向缩放
-        if (abs(dx) >= 2) {
-            scroll_x = (dx * SCROLL_X_DIR) / 32; 
-            if (scroll_x == 0) scroll_x = (dx * SCROLL_X_DIR > 0) ? 1 : -1;
-        }
+        // 1. 软件死区，防止手抖和硬件零点偏置
+        int8_t active_dx = (abs(dx) >= 2) ? dx : 0;
+        int8_t active_dy = (abs(dy) >= 2) ? dy : 0;
 
-        if (abs(dy) >= 2) {
-            scroll_y = (dy * SCROLL_Y_DIR) / 16; 
-            if (scroll_y == 0) scroll_y = (dy * SCROLL_Y_DIR > 0) ? 1 : -1;
+#ifdef CONFIG_TRACKPOINT_EXPONENTIAL
+        uint32_t delta = now - data->last_packet_time;
+        if (delta > TRACKPOINT_WDT_TIMEOUT) {
+            delta = 10;
         }
+        // 2. 复用指针同款的指数加速因子计算
+        float scroll_exp_mult = trackpoint_exponential_factor(active_dx, active_dy, delta);
+#else
+        float scroll_exp_mult = 1.0f;
+#endif
 
-        // 呈报相对位置，使用稳定不丢包的 K_FOREVER
+        // 3. 基础滚动系数（如果觉得整体偏快或偏慢，可以微调下面除以的 48.0f 和 24.0f）
+        // 慢推时因为加入了 scroll_exp_mult(最小为1)，配合四舍五入，可以做到“足够慢”
+        // 快推时 scroll_exp_mult 暴增到 3.0，配合原本的位移，可以做到“刷屏级飞快”
+        float fx_scroll = ((float)active_dx * SCROLL_X_DIR) / 48.0f * scroll_exp_mult; 
+        float fy_scroll = ((float)active_dy * SCROLL_Y_DIR) / 24.0f * scroll_exp_mult;
+
+        // 4. 四舍五入取整
+        scroll_x = (int16_t)roundf(fx_scroll);
+        scroll_y = (int16_t)roundf(fy_scroll);
+
+        // 5. 极微小移动保底补偿：只要手在推且通过了死区，就至少给 1 像素移动，确保慢速灵敏度
+        if (active_dx > 0 && scroll_x == 0 && SCROLL_X_DIR > 0) scroll_x = 1;
+        if (active_dx > 0 && scroll_x == 0 && SCROLL_X_DIR < 0) scroll_x = -1;
+        if (active_dx < 0 && scroll_x == 0 && SCROLL_X_DIR > 0) scroll_x = -1;
+        if (active_dx < 0 && scroll_x == 0 && SCROLL_X_DIR < 0) scroll_x = 1;
+
+        if (active_dy > 0 && scroll_y == 0 && SCROLL_Y_DIR > 0) scroll_y = 1;
+        if (active_dy > 0 && scroll_y == 0 && SCROLL_Y_DIR < 0) scroll_y = -1;
+        if (active_dy < 0 && scroll_y == 0 && SCROLL_Y_DIR > 0) scroll_y = -1;
+        if (active_dy < 0 && scroll_y == 0 && SCROLL_Y_DIR < 0) scroll_y = 1;
+
+        // 呈报相对位置
         input_report_rel(dev, INPUT_REL_HWHEEL, scroll_x, false, K_FOREVER);
         input_report_rel(dev, INPUT_REL_WHEEL, scroll_y, true, K_FOREVER);
 
-        // 只有有真实输出时才进行 30ms 顺滑防抖，防止日常空扫发包挂起
+        // 6. 防抖延迟：只有在真正产生滚动数据时，才进行 30ms 顺滑防抖
         if (scroll_x != 0 || scroll_y != 0) {
             k_sleep(K_MSEC(30)); 
         }
-    } 
+    }
     /* ========================================================================= */
-    /* 3. 正常鼠标移动模式 —— ⭐ 采用最精准的 0.4f + 0.01f 老版曲线公式           */
+    /* 3. 正常鼠标移动模式 —— ⭐ 精准修复版（彻底解决方向不对称与起飞卡顿）    */
     /* ========================================================================= */
     else {
         uint8_t tp_led_brt = custom_led_get_last_valid_brightness();
         float tp_factor = 0.4f + 0.01f * tp_led_brt;
 
+        // 1. 关键修复：设立软件死区（Deadzone），完美过滤物理应力导致的单向零点漂移
+        // 这样可以防止微小偏置在高速中断下把指数加速误触发
+        if (abs(dx) < 2) dx = 0;
+        if (abs(dy) < 2) dy = 0;
+
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
         uint32_t delta = now - data->last_packet_time;
+        
+        // 2. 防暴走限制：如果 delta 异常大（比如触发看门狗后），强制复位 delta 步长，防止手感阶跃
+        if (delta > TRACKPOINT_WDT_TIMEOUT) {
+            delta = 10; 
+        }
         float exp_mult = trackpoint_exponential_factor(dx, dy, delta);
 #else
         float exp_mult = 1.0f;
@@ -287,18 +322,33 @@ static void trackpoint_work_cb(struct k_work *work) {
 
         float slow_mult = slow_key_pressed ? SLOW_KEY_MULTIPLIER : 1.0f;
 
-        // 老版纯正公式：dx * 2.5 * 基础因子 * 指数加速 * 减速
+        // 老版纯正公式
         float fx = (float)dx * 2.5f * tp_factor * exp_mult * slow_mult;
         float fy = (float)dy * 2.5f * tp_factor * exp_mult * slow_mult;
 
-        input_report_rel(dev, INPUT_REL_X, -(int)fx, false, K_FOREVER);
-        input_report_rel(dev, INPUT_REL_Y, -(int)fy, true, K_FOREVER);
+        // 3. 核心修复：引入 roundf() 四舍五入，全面替代 -(int)fx 强制截断向零取整
+        // 从而彻底根治慢速逆向推时，低位移像素被截断吞掉、感觉极度沉重的问题
+        int final_x = (int)roundf(-fx);
+        int final_y = (int)roundf(-fy);
+
+        // 4. 微动保底补偿：只要在死区外有物理推力，即使算出来四舍五入是 0，也至少保证给 1 像素反馈
+        if (dx > 0 && final_x == 0) final_x = -1;
+        if (dx < 0 && final_x == 0) final_x = 1;
+        if (dy > 0 && final_y == 0) final_y = -1;
+        if (dy < 0 && final_y == 0) final_y = 1;
+
+        input_report_rel(dev, INPUT_REL_X, final_x, false, K_FOREVER);
+        input_report_rel(dev, INPUT_REL_Y, final_y, true, K_FOREVER);
     }
+
+    // 5. 时间戳安全位置：确保每一次数据处理（无论走哪个分支）时间步长都在连续更新
+    data->last_packet_time = now; 
 
     last_scroll_key_pressed = scroll_key_pressed;
     last_arrow_key_pressed = arrow_key_pressed;
-    data->last_packet_time = now;
-} // <--- 🟢 整个函数的末尾在这里正常结束
+    // 删掉原本在最后的 data->last_packet_time = now; 避免重复更新
+}
+
 
 
 /* ========= GPIO 中断接收服务 ========= */
