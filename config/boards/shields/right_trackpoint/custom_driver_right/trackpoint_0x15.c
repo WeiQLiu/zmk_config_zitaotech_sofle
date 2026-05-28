@@ -279,8 +279,8 @@ static void trackpoint_work_cb(struct k_work *work) {
 
             // 2. 🟢 基础分母加大（回归 32.0f 和 16.0f），确保“基础足够小”
             // 这样在慢推时，由于 scroll_exp_mult 接近 1.0，fx/fy 算出来极其微小
-            float fx_scroll = ((float)dx * SCROLL_X_DIR) / 96.0f * scroll_exp_mult; 
-            float fy_scroll = ((float)dy * SCROLL_Y_DIR) / 48.0f * scroll_exp_mult;
+            float fx_scroll = ((float)dx * SCROLL_X_DIR) / 384.0f * scroll_exp_mult; 
+            float fy_scroll = ((float)dy * SCROLL_Y_DIR) / 192.0f * scroll_exp_mult;
 
             scroll_x = (int16_t)roundf(fx_scroll);
             scroll_y = (int16_t)roundf(fy_scroll);
