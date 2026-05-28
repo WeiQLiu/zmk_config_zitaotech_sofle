@@ -245,37 +245,53 @@ static void trackpoint_work_cb(struct k_work *work) {
     }
         
     /* ========================================================================= */
-    /* 2. 滚轮模式 —— ⭐ 升级为指针同款“指数加速”曲线，快慢自如               */
+    /* 2. 滚轮模式 —— ⭐ 滚轮专属高动态指数加速曲线（轻推极慢，重推刷屏）        */
     /* ========================================================================= */
-   else if (scroll_key_pressed || capslock) {
+    else if (scroll_key_pressed || capslock) {
         int16_t scroll_x = 0;
         int16_t scroll_y = 0;
 
+        // 只要硬件有读数，就立刻无缝进入处理逻辑
         if (dx != 0 || dy != 0) {
-            float scroll_exp_mult = 1.0f;
+            
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
             uint32_t delta = now - data->last_packet_time;
-            if (delta > TRACKPOINT_WDT_TIMEOUT) delta = 10;
-            scroll_exp_mult = trackpoint_exponential_factor(dx, dy, delta);
+            if (delta > TRACKPOINT_WDT_TIMEOUT) {
+                delta = 10;
+            }
+            // 1. 🟢 允许所有读数（包括 ±1）全部参与指数加速计算，实现绝对无缝过渡
+            float scroll_exp_mult = trackpoint_exponential_factor(dx, dy, delta);
+#else
+            float scroll_exp_mult = 1.0f;
 #endif
 
-            float fx_scroll = ((float)dx * SCROLL_X_DIR) / 48.0f * scroll_exp_mult; 
-            float fy_scroll = ((float)dy * SCROLL_Y_DIR) / 24.0f * scroll_exp_mult;
+            // 2. 🟢 大幅度减小分母（从 48/24 缩减到 8.0f 和 4.0f），释放极速刷屏的潜力
+            // 当你大力推时，scroll_exp_mult 暴涨到 3.0，分子变大，速度将呈指数级飞快提升！
+            float fx_scroll = ((float)dx * SCROLL_X_DIR) / 8.0f * scroll_exp_mult; 
+            float fy_scroll = ((float)dy * SCROLL_Y_DIR) / 4.0f * scroll_exp_mult;
 
+            // 3. 🟢 使用真正的截断或四舍五入，让真正的物理浮点数决定是否发包
             scroll_x = (int16_t)roundf(fx_scroll);
             scroll_y = (int16_t)roundf(fy_scroll);
 
-            // 保持斜向矢量方向正确，避免单轴硬锁
+            // 4. 🟢 保底补偿：只有当 fx_scroll 算出来确实连 0.5 都不到（导致 roundf 变成 0）
+            // 但手指又确实在推时，才给 1 或 -1 的微动，确保绝对不丢包、能精准微调
             if (dx != 0 && scroll_x == 0) scroll_x = (dx * SCROLL_X_DIR > 0) ? 1 : -1;
             if (dy != 0 && scroll_y == 0) scroll_y = (dy * SCROLL_Y_DIR > 0) ? 1 : -1;
 
-            // ⭐ 滚轮同步：将 false 和 true 的时序拉到最近，杜绝先后顺序引发的阶梯感
+            // 呈报给系统
             input_report_rel(dev, INPUT_REL_HWHEEL, scroll_x, false, K_NO_WAIT);
             input_report_rel(dev, INPUT_REL_WHEEL, scroll_y, true, K_NO_WAIT);
 
-            k_sleep(K_MSEC(15)); // 将防抖延迟从 30ms 缩短到 15ms，提高斜向高频中断时的平滑度
+            // 5. 🟢 降低防抖睡眠：从 30ms 缩短到 10ms
+            // 中断模式下，把睡眠时间留长了会严重限制大推时的发包频率，导致大力推时“快不起来”
+            k_sleep(K_MSEC(10)); 
         }
     }
+
+
+
+        
     /* ========================================================================= */
     /* 3. 正常鼠标移动模式 —— ⭐ 精准修复版（彻底解决方向不对称与起飞卡顿）    */
     /* ========================================================================= */
