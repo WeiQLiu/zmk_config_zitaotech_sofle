@@ -1,4 +1,4 @@
-// 小红点设置，小红点
+ // 小红点设置，小红点
 /*
  * TrackPoint HID over I2C Driver (Zephyr Input Subsystem)
  * Interrupt-driven version (Successfully Restored to Old-Version Speed & Curve)
@@ -269,7 +269,7 @@ static void trackpoint_work_cb(struct k_work *work) {
                  * - 想让快推时“更疯狂地起飞”：增大底数（如 1.15f）或减小缩放因子（如 0.08f）
                  * - 想让慢推时“更死板、更慢”：减小底数（如 1.08f）或增大缩放因子（如 0.15f）
                  * ----------------------------------------------------------- */
-                scroll_exp_mult = powf(1.15f, speed / 0.10f);  
+                scroll_exp_mult = powf(1.0f, speed / 0.10f);  
 
                 // 允许滚轮最高爆发 8.0 倍速（原先指针只有 3.0）
                 if (scroll_exp_mult > 8.0f) {
