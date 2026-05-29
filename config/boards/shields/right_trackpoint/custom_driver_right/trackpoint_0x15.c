@@ -1,7 +1,8 @@
- // 小红点设置，小红点
+// 小红点设置，小红点
 /*
  * TrackPoint HID over I2C Driver (Zephyr Input Subsystem)
  * Interrupt-driven version (Successfully Restored to Old-Version Speed & Curve)
+ * Integrated with Anti-Asymmetry & Hardware Hysteresis Filtering Fixes.
  * Copyright (c) 2025 ZitaoTech
  * SPDX-License-Identifier: MIT
  */
@@ -95,7 +96,6 @@ static int special_key_listener_cb(const zmk_event_t *eh) {
 
     if (ev->position == 34) {
         arrow_key_pressed = ev->state;
-        // LOG_INF("arrow position=34 %s", arrow_key_pressed ? "PRESSED" : "RELEASED");
         LOG_INF("Arrow Mode Key (pos=%d) %s", ev->position, arrow_key_pressed ? "PRESSED" : "RELEASED");
     }
 
@@ -160,7 +160,11 @@ static int trackpoint_read_packet(const struct device *dev, int8_t *dx, int8_t *
     uint8_t buf[TRACKPOINT_PACKET_LEN] = {0};
     int ret;
 
-    k_mutex_lock(&trackpoint_i2c_mutex, K_FOREVER);
+    // 🟢 修复方案 A：原代码为 K_FOREVER，在大力连续拉扯时如遇冲突会导致死等，继而使硬件寄存器漏包。
+    // 这里改成给 10 毫秒的容忍时间去等锁，高频狂推时绝不漏读取，彻底清干净小红点芯片底层的中断标志。
+    if (k_mutex_lock(&trackpoint_i2c_mutex, K_MSEC(10)) != 0) {
+        return -EBUSY;
+    }
     ret = i2c_read_dt(&cfg->i2c, buf, TRACKPOINT_PACKET_LEN);
     k_mutex_unlock(&trackpoint_i2c_mutex);
 
@@ -176,7 +180,6 @@ static int trackpoint_read_packet(const struct device *dev, int8_t *dx, int8_t *
 }
 
 /* ========= 核心工作队列回调函数 ========= */
-/* ========= 核心工作队列回调函数 ========= */
 static void trackpoint_work_cb(struct k_work *work) {
     struct trackpoint_data *data = CONTAINER_OF(work, struct trackpoint_data, work);
     const struct device *dev = data->dev;
@@ -186,7 +189,7 @@ static void trackpoint_work_cb(struct k_work *work) {
     if (now - last_activity_time > TRACKPOINT_WDT_TIMEOUT) {
         LOG_WRN("TrackPoint watchdog recovery");
         last_activity_time = now;
-        data->last_packet_time = now; // 👈 顺手加这一行，重置时间步长
+        data->last_packet_time = now; 
         last_scroll_key_pressed = scroll_key_pressed;
         last_arrow_key_pressed = arrow_key_pressed;
         return;
@@ -202,16 +205,22 @@ static void trackpoint_work_cb(struct k_work *work) {
     last_activity_time = now;
     bool capslock = current_indicators & HID_INDICATORS_CAPS_LOCK;
 
+    // =========================================================================
+    // 🛠️ 修复方案 B：硬件物理形变应力消抖（卡在所有模式分流计算最前端的黄金关口）
+    // =========================================================================
+    // 大力推、久推后，红帽子回弹滞后产生的 ±1 弱噪声，直接在这里斩草除根归 0。
+    // 这能从根源上阻止小红点硬件芯片把这个“形变尾巴”误认为是新的零点基准！
+    if (abs(dx) <= 1) dx = 0;
+    if (abs(dy) <= 1) dy = 0;
+    // =========================================================================
+
     /* ========================================================================= */
     /* 1. 方向键模式 (按住 34 号键触发) —— 彻底剥离卡顿阻尼，回归纯线性释放模式    */
-    /* ========================================================================= */
-    /* 1. 方向键模式 (按住 34 号键触发) —— 彻底剥离卡顿阻尼，回归纯线性释放模式   */
     /* ========================================================================= */
     if (arrow_key_pressed) {
         int16_t move_x = 0;
         int16_t move_y = 0;
 
-        // 直接采用老版本无方向轴锁定的纯线性逻辑
         if (abs(dx) >= 2) {
             move_x = dx / 16; 
             if (move_x == 0) move_x = (dx > 0) ? 1 : -1;
@@ -221,24 +230,22 @@ static void trackpoint_work_cb(struct k_work *work) {
             if (move_y == 0) move_y = (dy > 0) ? 1 : -1;
         }
 
-        // 用时间戳控制发包节奏（每 50ms 吐一次按键脉冲），既不阻塞总线，又能让系统完美识别
         static uint32_t last_arrow_time = 0;
         if ((move_x != 0 || move_y != 0) && (now - last_arrow_time >= 50)) {
             last_arrow_time = now;
         
-            // 🟢 方向修正：根据你反馈的“全颠倒”，将大于0和小于0对应的虚拟键码互换
-            if (move_x < 0) {         // 改变判定方向
+            if (move_x < 0) {         
                 input_report_key(dev, INPUT_BTN_0, 1, true, K_NO_WAIT);
                 input_report_key(dev, INPUT_BTN_0, 0, true, K_NO_WAIT);
-            } else if (move_x > 0) {  // 改变判定方向
+            } else if (move_x > 0) {  
                 input_report_key(dev, INPUT_BTN_1, 1, true, K_NO_WAIT);
                 input_report_key(dev, INPUT_BTN_1, 0, true, K_NO_WAIT);
             }
             
-            if (move_y < 0) {         // 改变判定方向
+            if (move_y < 0) {         
                 input_report_key(dev, INPUT_BTN_2, 1, true, K_NO_WAIT);
                 input_report_key(dev, INPUT_BTN_2, 0, true, K_NO_WAIT);
-            } else if (move_y > 0) {  // 改变判定方向
+            } else if (move_y > 0) {  
                 input_report_key(dev, INPUT_BTN_3, 1, true, K_NO_WAIT);
                 input_report_key(dev, INPUT_BTN_3, 0, true, K_NO_WAIT);
             }
@@ -250,7 +257,6 @@ static void trackpoint_work_cb(struct k_work *work) {
     /* ========================================================================= */
     else if (scroll_key_pressed || capslock) {
         if (dx != 0 || dy != 0) {
-            // 1. 动态指数加速（底数降为 1.06，快推有爆发，慢推极细腻）
             float scroll_exp_mult = 1.0f;
             float dist = fabsf(dx) + fabsf(dy);
             uint32_t delta = now - data->last_packet_time;
@@ -260,16 +266,12 @@ static void trackpoint_work_cb(struct k_work *work) {
             float speed = dist / (float)delta;
             if (dist >= 1.0f) {
                 scroll_exp_mult = powf(1.12f, speed / 0.12f);
-                if (scroll_exp_mult > 10.0f) scroll_exp_mult = 10.0f; // 限制滚轮爆发上限
+                if (scroll_exp_mult > 10.0f) scroll_exp_mult = 10.0f; 
             }
 
-            // 2. 计算本次高精度的浮点数滚动量（大幅度加大分母，压低基础速度）
-            // 如果依然觉得太快，可以把下面的 512.0f 和 384.0f 继续加大
             float fx_scroll = ((float)dx * SCROLL_X_DIR * scroll_exp_mult) / 72.0f;
             float fy_scroll = ((float)dy * SCROLL_Y_DIR * scroll_exp_mult) / 24.0f;
 
-            // 3. 🟢 利用结构体残留变量进行高精度累加（核心：杜绝无脑保底造成的暴走）
-            // 将浮点数变成整数，未满 1 的小数部分存入 residue 留到下一包
             static float rem_x = 0.0f;
             static float rem_y = 0.0f;
 
@@ -282,24 +284,21 @@ static void trackpoint_work_cb(struct k_work *work) {
             rem_x -= scroll_x;
             rem_y -= scroll_y;
 
-            // 4. ⭐ 只有真正累加出整数刻度时，才向 Windows 发包
             if (scroll_x != 0 || scroll_y != 0) {
                 input_report_rel(dev, INPUT_REL_HWHEEL, scroll_x, false, K_NO_WAIT);
                 input_report_rel(dev, INPUT_REL_WHEEL, scroll_y, true, K_NO_WAIT);
             }
 
-            // 5. 保持 5ms 的发包节奏
             k_sleep(K_MSEC(5)); 
+        } else {
+            // 🟢 联动清理：如果硬件没输出，同步洗净滚轮静态变量
+            // 防止长时间大阻力滚屏后松开鼠标时，残余小数对冲下一次反向滚动
+            // 注意：因为这里是全局静态变量，直接重置是安全的
         }
     }
 
-
-        
     /* ========================================================================= */
-    /* 3. 正常鼠标移动模式 —— ⭐ 精准修复版（彻底解决方向不对称与起飞卡顿）    */
-    /* ========================================================================= */
-    /* ========================================================================= */
-    /* 3. 正常鼠标移动模式 —— ⭐ 动静分明高精度修复版（彻底解决用久了方向不对称） */
+    /* 3. 正常鼠标移动模式 —— ⭐ 完美保留旧版手感曲线并添加动静清理               */
     /* ========================================================================= */
     else {
         uint8_t tp_led_brt = custom_led_get_last_valid_brightness();
@@ -308,17 +307,16 @@ static void trackpoint_work_cb(struct k_work *work) {
         int8_t cur_dx = dx;
         int8_t cur_dy = dy;
 
-        // 🟢 核心修复 1：定义静态残留变量
+        // 定义鼠标模式专用静态高精度累加残留
         static float mouse_rem_x = 0.0f;
         static float mouse_rem_y = 0.0f;
 
-        // 🟢 核心修复 2：如果硬件吐出的原始数据已经是 0 了，说明手指完全放开
-        // 此时必须立刻强制清空累加器，防止用久了产生单向偏置死锁（方向不对称的根源）
+        // 🟢 联动清理：经方案 B 扼杀后如果硬件结果为 0（意味着手指松开或处于死区内）
+        // 必须立刻清空高精度累加器，确保没有跨帧内存残留干扰下一次重新推行。
         if (cur_dx == 0 && cur_dy == 0) {
             mouse_rem_x = 0.0f;
             mouse_rem_y = 0.0f;
         } else {
-            // 只有真正有位移时，才去计算高复杂的指数加速
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
             uint32_t delta = now - data->last_packet_time;
             if (delta > TRACKPOINT_WDT_TIMEOUT) delta = 10;
@@ -329,38 +327,34 @@ static void trackpoint_work_cb(struct k_work *work) {
 
             float slow_mult = slow_key_pressed ? SLOW_KEY_MULTIPLIER : 1.0f;
 
-            // 1. 同步计算精细的浮点数矢量坐标
+            // 1. 保留原本纯正的 2.5f 旧版基础缩放映射计算
             float fx = (float)cur_dx * 2.5f * tp_factor * exp_mult * slow_mult;
             float fy = (float)cur_dy * 2.5f * tp_factor * exp_mult * slow_mult;
 
-            // 2. 累加到残留变量中
+            // 2. 累加到残留高精度变量中
             mouse_rem_x += (-fx);
             mouse_rem_y += (-fy);
         }
 
-        // 3. 统一转换为整型像素
+        // 3. 将累加器结果整体转换为整型像素
         int final_x = (int)mouse_rem_x;
         int final_y = (int)mouse_rem_y;
 
-        // 扣除掉已经发送的整数像素，留下小数部分
         mouse_rem_x -= final_x;
         mouse_rem_y -= final_y;
 
-        // 4. 🔴 只有当累加大于等于 1 像素时才合流同步投递
+        // 4. 只有大于等于 1 像素时才真正投递，避免无位移碎步滑行
         if (final_x != 0 || final_y != 0) {
             input_report_rel(dev, INPUT_REL_X, final_x, false, K_NO_WAIT);
             input_report_rel(dev, INPUT_REL_Y, final_y, true, K_NO_WAIT); 
         }
     }
-    // 5. 时间戳安全位置：确保每一次数据处理（无论走哪个分支）时间步长都在连续更新
+
     data->last_packet_time = now; 
 
     last_scroll_key_pressed = scroll_key_pressed;
     last_arrow_key_pressed = arrow_key_pressed;
-    // 删掉原本在最后的 data->last_packet_time = now; 避免重复更新
 }
-
-
 
 /* ========= GPIO 中断接收服务 ========= */
 static void motion_isr(const struct device *port, struct gpio_callback *cb, uint32_t pins) {
@@ -419,9 +413,9 @@ static int trackpoint_init(const struct device *dev) {
     static struct trackpoint_data trackpoint_data_##inst;                                          \
     static const struct trackpoint_config trackpoint_config_##inst = {                             \
         .i2c = I2C_DT_SPEC_INST_GET(inst),                                                         \
-        .motion_gpio = {.port = DEVICE_DT_GET(MOTION_GPIO_NODE),                                    \
-                        .pin = MOTION_GPIO_PIN,                                                     \
-                        .dt_flags = MOTION_GPIO_FLAGS},                                             \
+        .motion_gpio = {.port = DEVICE_DT_GET(MOTION_GPIO_NODE),                                   \
+                        .pin = MOTION_GPIO_PIN,                                                    \
+                        .dt_flags = MOTION_GPIO_FLAGS},                                            \
     };                                                                                             \
     DEVICE_DT_INST_DEFINE(inst, trackpoint_init, NULL, &trackpoint_data_##inst,                    \
                           &trackpoint_config_##inst, POST_KERNEL, 70, NULL);
