@@ -186,6 +186,7 @@ static void trackpoint_work_cb(struct k_work *work) {
     if (now - last_activity_time > TRACKPOINT_WDT_TIMEOUT) {
         LOG_WRN("TrackPoint watchdog recovery");
         last_activity_time = now;
+        data->last_packet_time = now; // 👈 顺手加这一行，重置时间步长
         last_scroll_key_pressed = scroll_key_pressed;
         last_arrow_key_pressed = arrow_key_pressed;
         return;
@@ -297,48 +298,59 @@ static void trackpoint_work_cb(struct k_work *work) {
     /* ========================================================================= */
     /* 3. 正常鼠标移动模式 —— ⭐ 精准修复版（彻底解决方向不对称与起飞卡顿）    */
     /* ========================================================================= */
+    /* ========================================================================= */
+    /* 3. 正常鼠标移动模式 —— ⭐ 动静分明高精度修复版（彻底解决用久了方向不对称） */
+    /* ========================================================================= */
     else {
         uint8_t tp_led_brt = custom_led_get_last_valid_brightness();
         float tp_factor = 0.4f + 0.01f * tp_led_brt;
 
-        // 引入软件消抖，但不设硬死区
         int8_t cur_dx = dx;
         int8_t cur_dy = dy;
 
-#ifdef CONFIG_TRACKPOINT_EXPONENTIAL
-        uint32_t delta = now - data->last_packet_time;
-        if (delta > TRACKPOINT_WDT_TIMEOUT) delta = 10;
-        float exp_mult = trackpoint_exponential_factor(cur_dx, cur_dy, delta);
-#else
-        float exp_mult = 1.0f;
-#endif
-
-        float slow_mult = slow_key_pressed ? SLOW_KEY_MULTIPLIER : 1.0f;
-
-        // 1. 同步计算完美的浮点数矢量坐标
-        float fx = (float)cur_dx * 2.5f * tp_factor * exp_mult * slow_mult;
-        float fy = (float)cur_dy * 2.5f * tp_factor * exp_mult * slow_mult;
-
-        // 2. 🟢 鼠标专用的静态残留累加器（核心：过滤噪声，彻底干掉滑行漂移感）
+        // 🟢 核心修复 1：定义静态残留变量
         static float mouse_rem_x = 0.0f;
         static float mouse_rem_y = 0.0f;
 
-        mouse_rem_x += (-fx);
-        mouse_rem_y += (-fy);
+        // 🟢 核心修复 2：如果硬件吐出的原始数据已经是 0 了，说明手指完全放开
+        // 此时必须立刻强制清空累加器，防止用久了产生单向偏置死锁（方向不对称的根源）
+        if (cur_dx == 0 && cur_dy == 0) {
+            mouse_rem_x = 0.0f;
+            mouse_rem_y = 0.0f;
+        } else {
+            // 只有真正有位移时，才去计算高复杂的指数加速
+#ifdef CONFIG_TRACKPOINT_EXPONENTIAL
+            uint32_t delta = now - data->last_packet_time;
+            if (delta > TRACKPOINT_WDT_TIMEOUT) delta = 10;
+            float exp_mult = trackpoint_exponential_factor(cur_dx, cur_dy, delta);
+#else
+            float exp_mult = 1.0f;
+#endif
 
+            float slow_mult = slow_key_pressed ? SLOW_KEY_MULTIPLIER : 1.0f;
+
+            // 1. 同步计算精细的浮点数矢量坐标
+            float fx = (float)cur_dx * 2.5f * tp_factor * exp_mult * slow_mult;
+            float fy = (float)cur_dy * 2.5f * tp_factor * exp_mult * slow_mult;
+
+            // 2. 累加到残留变量中
+            mouse_rem_x += (-fx);
+            mouse_rem_y += (-fy);
+        }
+
+        // 3. 统一转换为整型像素
         int final_x = (int)mouse_rem_x;
         int final_y = (int)mouse_rem_y;
 
-        // 减去已经发出去的整数像素，把剩下的小数留在下一次累加
+        // 扣除掉已经发送的整数像素，留下小数部分
         mouse_rem_x -= final_x;
         mouse_rem_y -= final_y;
 
-        // 3. 🔴 只有当累加值大于等于 1 个物理像素时才合流投递，从物理上隔绝低速滑行
+        // 4. 🔴 只有当累加大于等于 1 像素时才合流同步投递
         if (final_x != 0 || final_y != 0) {
             input_report_rel(dev, INPUT_REL_X, final_x, false, K_NO_WAIT);
             input_report_rel(dev, INPUT_REL_Y, final_y, true, K_NO_WAIT); 
         }
-      
     }
     // 5. 时间戳安全位置：确保每一次数据处理（无论走哪个分支）时间步长都在连续更新
     data->last_packet_time = now; 
