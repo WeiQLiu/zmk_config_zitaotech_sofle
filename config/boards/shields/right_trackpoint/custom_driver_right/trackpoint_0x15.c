@@ -2,7 +2,7 @@
 /*
  * TrackPoint HID over I2C Driver (Zephyr Input Subsystem)
  * Interrupt-driven version (Successfully Restored to Old-Version Speed & Curve)
- * Integrated with Anti-Asymmetry & Hardware Hysteresis Filtering Fixes.
+ * Fixed: Diagonal Movement Restored & Multi-axis Smoothness Maintained.
  * Copyright (c) 2025 ZitaoTech
  * SPDX-License-Identifier: MIT
  */
@@ -125,7 +125,7 @@ struct trackpoint_data {
     struct gpio_callback motion_cb_data;
     struct k_work_delayable enable_irq_work; 
     uint32_t last_packet_time;
-    int16_t scroll_residue_x; // 留空保持结构体兼容，代码中不用
+    int16_t scroll_residue_x; 
     int16_t scroll_residue_y;
     int16_t arrow_residue_x;
     int16_t arrow_residue_y;
@@ -160,8 +160,7 @@ static int trackpoint_read_packet(const struct device *dev, int8_t *dx, int8_t *
     uint8_t buf[TRACKPOINT_PACKET_LEN] = {0};
     int ret;
 
-    // 🟢 修复方案 A：原代码为 K_FOREVER，在大力连续拉扯时如遇冲突会导致死等，继而使硬件寄存器漏包。
-    // 这里改成给 10 毫秒的容忍时间去等锁，高频狂推时绝不漏读取，彻底清干净小红点芯片底层的中断标志。
+    // 🟢 方案 A 保留：给 10ms 锁等待时间。防止高频大推漏包。
     if (k_mutex_lock(&trackpoint_i2c_mutex, K_MSEC(10)) != 0) {
         return -EBUSY;
     }
@@ -205,17 +204,8 @@ static void trackpoint_work_cb(struct k_work *work) {
     last_activity_time = now;
     bool capslock = current_indicators & HID_INDICATORS_CAPS_LOCK;
 
-    // =========================================================================
-    // 🛠️ 修复方案 B：硬件物理形变应力消抖（卡在所有模式分流计算最前端的黄金关口）
-    // =========================================================================
-    // 大力推、久推后，红帽子回弹滞后产生的 ±1 弱噪声，直接在这里斩草除根归 0。
-    // 这能从根源上阻止小红点硬件芯片把这个“形变尾巴”误认为是新的零点基准！
-    if (abs(dx) <= 1) dx = 0;
-    if (abs(dy) <= 1) dy = 0;
-    // =========================================================================
-
     /* ========================================================================= */
-    /* 1. 方向键模式 (按住 34 号键触发) —— 彻底剥离卡顿阻尼，回归纯线性释放模式    */
+    /* 1. 方向键模式 (按住 34 号键触发)                                            */
     /* ========================================================================= */
     if (arrow_key_pressed) {
         int16_t move_x = 0;
@@ -253,7 +243,7 @@ static void trackpoint_work_cb(struct k_work *work) {
     }
         
     /* ========================================================================= */
-    /* 2. 滚轮模式 —— ⭐ 独立大幂次指数加速（基础极小，爆发极大）                */
+    /* 2. 滚轮模式                                                               */
     /* ========================================================================= */
     else if (scroll_key_pressed || capslock) {
         if (dx != 0 || dy != 0) {
@@ -290,15 +280,11 @@ static void trackpoint_work_cb(struct k_work *work) {
             }
 
             k_sleep(K_MSEC(5)); 
-        } else {
-            // 🟢 联动清理：如果硬件没输出，同步洗净滚轮静态变量
-            // 防止长时间大阻力滚屏后松开鼠标时，残余小数对冲下一次反向滚动
-            // 注意：因为这里是全局静态变量，直接重置是安全的
         }
     }
 
     /* ========================================================================= */
-    /* 3. 正常鼠标移动模式 —— ⭐ 完美保留旧版手感曲线并添加动静清理               */
+    /* 3. 正常鼠标移动模式 —— ⭐ 完美恢复 360° 斜向细腻手感，精准干掉偏置          */
     /* ========================================================================= */
     else {
         uint8_t tp_led_brt = custom_led_get_last_valid_brightness();
@@ -307,16 +293,20 @@ static void trackpoint_work_cb(struct k_work *work) {
         int8_t cur_dx = dx;
         int8_t cur_dy = dy;
 
-        // 定义鼠标模式专用静态高精度累加残留
         static float mouse_rem_x = 0.0f;
         static float mouse_rem_y = 0.0f;
 
-        // 🟢 联动清理：经方案 B 扼杀后如果硬件结果为 0（意味着手指松开或处于死区内）
-        // 必须立刻清空高精度累加器，确保没有跨帧内存残留干扰下一次重新推行。
+        // 🟢 核心修正：取消原本生硬的单轴限制，改用“动静分明”的组合条件
+        // 只有当小红点硬件汇报双轴同时绝对没有任何输入（或者推后回弹完全落入静态），才强制清除历史偏置
         if (cur_dx == 0 && cur_dy == 0) {
             mouse_rem_x = 0.0f;
             mouse_rem_y = 0.0f;
-        } else {
+        } 
+        // 大力久推之后极大概率触发 ±1 的轻微回弹杂讯。若双轴矢量和小于 2，视为回弹伪包，不触发鼠标移动
+        else if ((abs(cur_dx) + abs(cur_dy)) <= 1) {
+            // 拦截残留回弹尾巴，保持原地不动，但不暴力把单轴清零，从而完美保护斜向移动中的 1 像素变化
+        } 
+        else {
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
             uint32_t delta = now - data->last_packet_time;
             if (delta > TRACKPOINT_WDT_TIMEOUT) delta = 10;
@@ -327,23 +317,20 @@ static void trackpoint_work_cb(struct k_work *work) {
 
             float slow_mult = slow_key_pressed ? SLOW_KEY_MULTIPLIER : 1.0f;
 
-            // 1. 保留原本纯正的 2.5f 旧版基础缩放映射计算
+            // 完全沿用你最习惯的旧版本 2.5f 纯正手感基础计算
             float fx = (float)cur_dx * 2.5f * tp_factor * exp_mult * slow_mult;
             float fy = (float)cur_dy * 2.5f * tp_factor * exp_mult * slow_mult;
 
-            // 2. 累加到残留高精度变量中
             mouse_rem_x += (-fx);
             mouse_rem_y += (-fy);
         }
 
-        // 3. 将累加器结果整体转换为整型像素
         int final_x = (int)mouse_rem_x;
         int final_y = (int)mouse_rem_y;
 
         mouse_rem_x -= final_x;
         mouse_rem_y -= final_y;
 
-        // 4. 只有大于等于 1 像素时才真正投递，避免无位移碎步滑行
         if (final_x != 0 || final_y != 0) {
             input_report_rel(dev, INPUT_REL_X, final_x, false, K_NO_WAIT);
             input_report_rel(dev, INPUT_REL_Y, final_y, true, K_NO_WAIT); 
