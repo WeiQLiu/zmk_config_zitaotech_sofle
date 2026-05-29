@@ -259,13 +259,13 @@ static void trackpoint_work_cb(struct k_work *work) {
             float speed = dist / (float)delta;
             if (dist >= 1.0f) {
                 scroll_exp_mult = powf(1.06f, speed / 0.12f);
-                if (scroll_exp_mult > 4.0f) scroll_exp_mult = 4.0f; // 限制滚轮爆发上限
+                if (scroll_exp_mult > 10.0f) scroll_exp_mult = 10.0f; // 限制滚轮爆发上限
             }
 
             // 2. 计算本次高精度的浮点数滚动量（大幅度加大分母，压低基础速度）
             // 如果依然觉得太快，可以把下面的 512.0f 和 384.0f 继续加大
-            float fx_scroll = ((float)dx * SCROLL_X_DIR * scroll_exp_mult) / 512.0f;
-            float fy_scroll = ((float)dy * SCROLL_Y_DIR * scroll_exp_mult) / 384.0f;
+            float fx_scroll = ((float)dx * SCROLL_X_DIR * scroll_exp_mult) / 192.0f;
+            float fy_scroll = ((float)dy * SCROLL_Y_DIR * scroll_exp_mult) / 96.0f;
 
             // 3. 🟢 利用结构体残留变量进行高精度累加（核心：杜绝无脑保底造成的暴走）
             // 将浮点数变成整数，未满 1 的小数部分存入 residue 留到下一包
