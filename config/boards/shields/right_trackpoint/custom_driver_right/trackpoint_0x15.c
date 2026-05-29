@@ -248,57 +248,49 @@ static void trackpoint_work_cb(struct k_work *work) {
     /* 2. 滚轮模式 —— ⭐ 独立大幂次指数加速（基础极小，爆发极大）                */
     /* ========================================================================= */
     else if (scroll_key_pressed || capslock) {
-        int16_t scroll_x = 0;
-        int16_t scroll_y = 0;
-
         if (dx != 0 || dy != 0) {
+            // 1. 动态指数加速（底数降为 1.06，快推有爆发，慢推极细腻）
             float scroll_exp_mult = 1.0f;
-
-            // 1. 🟢 计算滚轮专属的超强指数加速因子
             float dist = fabsf(dx) + fabsf(dy);
             uint32_t delta = now - data->last_packet_time;
             if (delta == 0) delta = 1;
             if (delta > TRACKPOINT_WDT_TIMEOUT) delta = 10;
 
             float speed = dist / (float)delta;
-
             if (dist >= 1.0f) {
-                /* -----------------------------------------------------------
-                 * 🔴 手感核心调校参数说明：
-                 * powf(底数, speed / 缩放因子)
-                 * - 想让快推时“更疯狂地起飞”：增大底数（如 1.15f）或减小缩放因子（如 0.08f）
-                 * - 想让慢推时“更死板、更慢”：减小底数（如 1.08f）或增大缩放因子（如 0.15f）
-                 * ----------------------------------------------------------- */
-                scroll_exp_mult = powf(1.0f, speed / 0.10f);  
-
-                // 允许滚轮最高爆发 8.0 倍速（原先指针只有 3.0）
-                if (scroll_exp_mult > 8.0f) {
-                    scroll_exp_mult = 8.0f;
-                }
+                scroll_exp_mult = powf(1.06f, speed / 0.12f);
+                if (scroll_exp_mult > 4.0f) scroll_exp_mult = 4.0f; // 限制滚轮爆发上限
             }
 
-            // 2. 🟢 基础分母加大（回归 32.0f 和 16.0f），确保“基础足够小”
-            // 这样在慢推时，由于 scroll_exp_mult 接近 1.0，fx/fy 算出来极其微小
-            float fx_scroll = ((float)dx * SCROLL_X_DIR) / 384.0f * scroll_exp_mult; 
-            float fy_scroll = ((float)dy * SCROLL_Y_DIR) / 192.0f * scroll_exp_mult;
+            // 2. 计算本次高精度的浮点数滚动量（大幅度加大分母，压低基础速度）
+            // 如果依然觉得太快，可以把下面的 512.0f 和 384.0f 继续加大
+            float fx_scroll = ((float)dx * SCROLL_X_DIR * scroll_exp_mult) / 512.0f;
+            float fy_scroll = ((float)dy * SCROLL_Y_DIR * scroll_exp_mult) / 384.0f;
 
-            scroll_x = (int16_t)roundf(fx_scroll);
-            scroll_y = (int16_t)roundf(fy_scroll);
+            // 3. 🟢 利用结构体残留变量进行高精度累加（核心：杜绝无脑保底造成的暴走）
+            // 将浮点数变成整数，未满 1 的小数部分存入 residue 留到下一包
+            static float rem_x = 0.0f;
+            static float rem_y = 0.0f;
 
-            // 3. 🟢 极慢速保底：如果手在推，但上面算出来四舍五入是 0，强制给 1 反馈
-            // 这保证了基础再小也绝对不会出现“推了不动”的断层感
-            if (dx != 0 && scroll_x == 0) scroll_x = (dx * SCROLL_X_DIR > 0) ? 1 : -1;
-            if (dy != 0 && scroll_y == 0) scroll_y = (dy * SCROLL_Y_DIR > 0) ? 1 : -1;
+            rem_x += fx_scroll;
+            rem_y += fy_scroll;
 
-            // 4. ⭐ 完美同步打包投递
-            input_report_rel(dev, INPUT_REL_HWHEEL, scroll_x, false, K_NO_WAIT);
-            input_report_rel(dev, INPUT_REL_WHEEL, scroll_y, true, K_NO_WAIT);
+            int16_t scroll_x = (int16_t)rem_x;
+            int16_t scroll_y = (int16_t)rem_y;
 
-            // 5. 🟢 缩短阻塞延迟到 5ms，完全释放大动量下的发包频率
+            rem_x -= scroll_x;
+            rem_y -= scroll_y;
+
+            // 4. ⭐ 只有真正累加出整数刻度时，才向 Windows 发包
+            if (scroll_x != 0 || scroll_y != 0) {
+                input_report_rel(dev, INPUT_REL_HWHEEL, scroll_x, false, K_NO_WAIT);
+                input_report_rel(dev, INPUT_REL_WHEEL, scroll_y, true, K_NO_WAIT);
+            }
+
+            // 5. 保持 5ms 的发包节奏
             k_sleep(K_MSEC(5)); 
         }
     }
-
 
 
         
@@ -327,17 +319,26 @@ static void trackpoint_work_cb(struct k_work *work) {
         float fx = (float)cur_dx * 2.5f * tp_factor * exp_mult * slow_mult;
         float fy = (float)cur_dy * 2.5f * tp_factor * exp_mult * slow_mult;
 
-        // 2. 使用更顺滑的 roundf，且【不要】在这里单独对单轴做过于生硬的 1 像素保底
-        int final_x = (int)roundf(-fx);
-        int final_y = (int)roundf(-fy);
+        // 2. 🟢 鼠标专用的静态残留累加器（核心：过滤噪声，彻底干掉滑行漂移感）
+        static float mouse_rem_x = 0.0f;
+        static float mouse_rem_y = 0.0f;
 
-        // 如果真的有移动，哪怕很微弱，保证方向正确的微动，同时投递
-        if (cur_dx != 0 && final_x == 0) final_x = (cur_dx > 0) ? -1 : 1;
-        if (cur_dy != 0 && final_y == 0) final_y = (cur_dy > 0) ? -1 : 1;
+        mouse_rem_x += (-fx);
+        mouse_rem_y += (-fy);
 
-        // 3. ⭐ 核心同步：先上报 X，【绝不】在中间插任何逻辑或延迟，紧接着上报 Y 并投递同步信号
-        input_report_rel(dev, INPUT_REL_X, final_x, false, K_NO_WAIT);
-        input_report_rel(dev, INPUT_REL_Y, final_y, true, K_NO_WAIT); // 真正的合流投递
+        int final_x = (int)mouse_rem_x;
+        int final_y = (int)mouse_rem_y;
+
+        // 减去已经发出去的整数像素，把剩下的小数留在下一次累加
+        mouse_rem_x -= final_x;
+        mouse_rem_y -= final_y;
+
+        // 3. 🔴 只有当累加值大于等于 1 个物理像素时才合流投递，从物理上隔绝低速滑行
+        if (final_x != 0 || final_y != 0) {
+            input_report_rel(dev, INPUT_REL_X, final_x, false, K_NO_WAIT);
+            input_report_rel(dev, INPUT_REL_Y, final_y, true, K_NO_WAIT); 
+        }
+      
     }
     // 5. 时间戳安全位置：确保每一次数据处理（无论走哪个分支）时间步长都在连续更新
     data->last_packet_time = now; 
