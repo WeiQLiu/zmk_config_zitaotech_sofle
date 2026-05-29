@@ -258,7 +258,7 @@ static void trackpoint_work_cb(struct k_work *work) {
 
             float speed = dist / (float)delta;
             if (dist >= 1.0f) {
-                scroll_exp_mult = powf(1.06f, speed / 0.12f);
+                scroll_exp_mult = powf(1.12f, speed / 0.12f);
                 if (scroll_exp_mult > 10.0f) scroll_exp_mult = 10.0f; // 限制滚轮爆发上限
             }
 
