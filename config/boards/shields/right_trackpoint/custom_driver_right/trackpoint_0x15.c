@@ -278,21 +278,20 @@ static void trackpoint_work_cb(struct k_work *work) {
         }
     }
 
-    /* ========================================================================= */
-    /* 3. 正常鼠标移动模式 —— 完美整合版 (无时间戳玄学，拒绝走直线死区)             */
+ /* ========================================================================= */
+    /* 3. 正常鼠标移动模式 —— ⭐ 独家调校：高容错率电竞级微操曲线 (驯服突然暴冲与直线性) */
     /* ========================================================================= */
     else {
         // 释放滚轮残留
         scroll_rem_x = 0.0f; scroll_rem_y = 0.0f;
 
         uint8_t tp_led_brt = custom_led_get_last_valid_brightness();
-        // 🟢 完美复现你代码中打算调用的 Kconfig 导出速度和亮度因子
         float tp_factor = MOUSE_SENS_BASE + MOUSE_SENS_STEP * tp_led_brt;
 
         int8_t cur_dx = dx;
         int8_t cur_dy = dy;
 
-        // 🟢 方向逆转秒清零：从根本上封锁由于历史小数残留导致的单向偏重
+        // 方向逆转秒清零
         int8_t sign_x = (cur_dx > 0) ? 1 : ((cur_dx < 0) ? -1 : 0);
         int8_t sign_y = (cur_dy > 0) ? 1 : ((cur_dy < 0) ? -1 : 0);
         
@@ -305,24 +304,30 @@ static void trackpoint_work_cb(struct k_work *work) {
             last_sign_x = 0;
             last_sign_y = 0;
         } else {
-            // 🟢 完美的几何物理圆周曲线，斜向划动丝般顺滑，毫无走直线卡顿感
+            // 🟢 核心重构：平滑S型物理加速曲线
             float exp_mult = 1.0f;
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
             float physical_dist = sqrtf((float)(cur_dx * cur_dx + cur_dy * cur_dy));
+            
             if (physical_dist > 1.0f) {
-                // 调校后的多项式曲线：微推极其线性精准，重推瞬间爆发（最高可达旧版上限 3.0f）
-                exp_mult = 1.0f + (physical_dist * 0.15f); 
-                if (exp_mult > 3.0f) exp_mult = 3.0f; 
+                // 1. 将原先陡峭的 0.15f 降为极度细腻的 0.04f，平抑微推时的敏感度
+                // 2. 引入平滑多项式，使速度变化率连续，彻底消灭“突变临界点”
+                float delta_dist = physical_dist - 1.0f;
+                exp_mult = 1.0f + (delta_dist * 0.04f) + (delta_dist * delta_dist * 0.003f);
+                
+                // 限制最高增益上限
+                if (exp_mult > 2.8f) exp_mult = 2.8f; 
             }
 #endif
 
             float slow_mult = slow_key_pressed ? SLOW_KEY_MULTIPLIER : 1.0f;
 
-            // 🟢 完美融合：旧版 2.5f 纯正底色放大率 + Kconfig 速度配置 + 物理加速
-            float fx = (float)cur_dx * 2.5f * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult;
-            float fy = (float)cur_dy * 2.5f * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult;
+            // 🟢 调校基础倍率（将原本生硬的 2.5f 调整为更可控的 1.8f 基准，配合上面的平滑多项式）
+            // 这样能让鼠标在低速时有极高的操控感，而当你大力推时，通过多项式依然能飞起来
+            float fx = (float)cur_dx * 1.8f * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult;
+            float fy = (float)cur_dy * 1.8f * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult;
 
-            // 高精度累加，一丁点位移都不会因“强转int”被吞
+            // 高精度累加
             mouse_rem_x += (-fx);
             mouse_rem_y += (-fy);
         }
