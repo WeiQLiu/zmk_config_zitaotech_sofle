@@ -293,51 +293,60 @@ static void trackpoint_work_cb(struct k_work *work) {
         }
     }
 
-    /* ========================================================================= */
-    /* 3. 正常鼠标移动模式 —— ⭐ 完美解决长久使用方向不对称与漂移死锁版         */
+/* ========================================================================= */
+    /* 3. 正常鼠标移动模式 —— ⭐ 自适应零点追踪版（兼顾高精度斜向与防非对称漂移）*/
     /* ========================================================================= */
     else {
         uint8_t tp_led_brt = custom_led_get_last_valid_brightness();
         float tp_factor = 0.4f + 0.01f * tp_led_brt;
 
-        // 🟢 防线 1：硬件级死区过滤 (过滤掉手指放开后，传感器未完全归零的 1 或 -1 的微小硬件漂移)
-        int8_t cur_dx = (abs(dx) <= 1) ? 0 : dx;
-        int8_t cur_dy = (abs(dy) <= 1) ? 0 : dy;
+        // 🟢 核心引入：静态动态零点基准 (用来吸收长久使用后的硬件形变单向偏置)
+        static float bias_x = 0.0f;
+        static float bias_y = 0.0f;
 
-        // 核心修复：定义静态残留变量
+        // 核心残留变量保持不变
         static float mouse_rem_x = 0.0f;
         static float mouse_rem_y = 0.0f;
-        
-        // 增加一个未发包计数器，用于判断是否处于静止状态
-        static uint32_t no_move_packets = 0;
 
-        // 如果硬件吐出的原始数据（经死区过滤后）已经是 0 了，说明手指放开
-        if (cur_dx == 0 && cur_dy == 0) {
-            mouse_rem_x = 0.0f;
-            mouse_rem_y = 0.0f;
-            no_move_packets = 0;
-        } else {
-            // 只有真正有位移时，才去计算高复杂的指数加速
-#ifdef CONFIG_TRACKPOINT_EXPONENTIAL
-            uint32_t delta = now - data->last_packet_time;
-            if (delta > TRACKPOINT_WDT_TIMEOUT) delta = 10;
-            float exp_mult = trackpoint_exponential_factor(cur_dx, cur_dy, delta);
-#else
-            float exp_mult = 1.0f;
-#endif
-
-            float slow_mult = slow_key_pressed ? SLOW_KEY_MULTIPLIER : 1.0f;
-
-            // 1. 同步计算精细的浮点数矢量坐标
-            float fx = (float)cur_dx * 2.5f * tp_factor * exp_mult * slow_mult;
-            float fy = (float)cur_dy * 2.5f * tp_factor * exp_mult * slow_mult;
-
-            // 2. 累加到残留变量中
-            mouse_rem_x += (-fx);
-            mouse_rem_y += (-fy);
+        // 1. 动态零点自校准：如果硬件输出极其微小（推测为放手后的物理漂移或静止微震）
+        // 我们不截断它（不破坏轨迹），而是让零点极其缓慢地向其靠拢（低通滤波）
+        float abs_dist = fabsf((float)dx) + fabsf((float)dy);
+        if (abs_dist <= 2.0f) {
+            // 滤波系数 0.02f：意味着需要连续近百个静止包，零点才会完全吃掉这个偏置，无感且丝滑
+            bias_x += ((float)dx - bias_x) * 0.02f;
+            bias_y += ((float)dy - bias_y) * 0.02f;
         }
 
-        // 3. 统一转换为整型像素
+        // 如果原始数据绝对是 0，立刻强制将残留和零点对齐，加速归零
+        if (dx == 0 && dy == 0) {
+            mouse_rem_x = 0.0f;
+            mouse_rem_y = 0.0f;
+        }
+
+        // 2. 减去动态零点，得到真正的纯净相对位移 (这时候小数依然保留，绝对不会卡在横竖直线上)
+        float pure_dx = (float)dx - bias_x;
+        float pure_dy = (float)dy - bias_y;
+
+        // 3. 计算指数加速 (改用经零点校正后的 pure 坐标，防止漂移引发误加速)
+#ifdef CONFIG_TRACKPOINT_EXPONENTIAL
+        uint32_t delta = now - data->last_packet_time;
+        if (delta > TRACKPOINT_WDT_TIMEOUT) delta = 10;
+        float exp_mult = trackpoint_exponential_factor((int8_t)pure_dx, (int8_t)pure_dy, delta);
+#else
+        float exp_mult = 1.0f;
+#endif
+
+        float slow_mult = slow_key_pressed ? SLOW_KEY_MULTIPLIER : 1.0f;
+
+        // 4. 同步计算精细的浮点数矢量坐标 (100% 还原原本的灵敏度与完美的斜向轨迹)
+        float fx = pure_dx * 2.5f * tp_factor * exp_mult * slow_mult;
+        float fy = pure_dy * 2.5f * tp_factor * exp_mult * slow_mult;
+
+        // 5. 累加到残留变量中
+        mouse_rem_x += (-fx);
+        mouse_rem_y += (-fy);
+
+        // 6. 统一转换为整型像素
         int final_x = (int)mouse_rem_x;
         int final_y = (int)mouse_rem_y;
 
@@ -345,25 +354,10 @@ static void trackpoint_work_cb(struct k_work *work) {
         mouse_rem_x -= final_x;
         mouse_rem_y -= final_y;
 
-        // 4. 只有当累加大于等于 1 像素时才合流同步投递
+        // 7. 投递鼠标位移
         if (final_x != 0 || final_y != 0) {
             input_report_rel(dev, INPUT_REL_X, final_x, false, K_NO_WAIT);
             input_report_rel(dev, INPUT_REL_Y, final_y, true, K_NO_WAIT); 
-            no_move_packets = 0; // 真正产生位移了，重置静止计数器
-        } else {
-            // 🟢 防线 2：自动衰减机制
-            // 如果持续 10 个数据包（约 50-100ms）有微小输入但无法凑整整型像素
-            // 说明陷入了单向微弱偏置，强制清除累加器，杜绝方向不对称的根源
-            if (cur_dx != 0 || cur_dy != 0) {
-                no_move_packets++;
-                if (no_move_packets > 10) {
-                    mouse_rem_x = 0.0f;
-                    mouse_rem_y = 0.0f;
-                    no_move_packets = 0;
-                }
-            } else {
-                no_move_packets = 0;
-            }
         }
     }
  
