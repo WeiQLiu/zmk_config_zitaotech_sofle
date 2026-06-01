@@ -65,7 +65,7 @@ static struct k_work_q tp_workq;
 #define TRACKPOINT_MAGIC_BYTE0 0x50
 
 #define SLOW_KEY_MULTIPLIER 0.3f
-#define FAST_KEY_MULTIPLIER 2.5f
+#define FAST_KEY_MULTIPLIER 5f
 
 /* ========= Watch Dog ========= */
 static uint32_t last_activity_time = 0;
@@ -118,7 +118,7 @@ static int special_key_listener_cb(const zmk_event_t *eh) {
     
     if (ev->position == 22) {
         fast_key_pressed = ev->state;
-        LOG_INF("slow_key position=36 %s", fast_key_pressed ? "PRESSED" : "RELEASED");
+        LOG_INF("slow_key position=22 %s", fast_key_pressed ? "PRESSED" : "RELEASED");
     }
     
     return 0;
@@ -332,8 +332,8 @@ static void trackpoint_work_cb(struct k_work *work) {
 
             // 🟢 调校基础倍率（将原本生硬的 2.5f 调整为更可控的 1.8f 基准，配合上面的平滑多项式）
             // 这样能让鼠标在低速时有极高的操控感，而当你大力推时，通过多项式依然能飞起来
-            float fx = (float)cur_dx * 1.8f * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult;
-            float fy = (float)cur_dy * 1.8f * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult;
+            float fx = (float)cur_dx * 1.8f * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult * fast_mult;
+            float fy = (float)cur_dy * 1.8f * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult * fast_mult;
 
             // 高精度累加
             mouse_rem_x += (-fx);
