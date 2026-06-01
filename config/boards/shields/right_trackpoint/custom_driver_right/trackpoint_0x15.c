@@ -263,9 +263,16 @@ static void trackpoint_work_cb(struct k_work *work) {
                 if (scroll_exp_mult > 5.0f) scroll_exp_mult = 5.0f;
             }
 
+
+
+
+            
+            float slow_mult_scroll = slow_key_pressed ? SLOW_KEY_MULTIPLIER : 1.0f;
+            float fast_mult_scroll = fast_key_pressed ? FAST_KEY_MULTIPLIER : 1.0f;
+           
             // 完美的各向异性高精度映射
-            float fx_scroll = ((float)dx * SCROLL_X_DIR * scroll_exp_mult) / 48.0f;
-            float fy_scroll = ((float)dy * SCROLL_Y_DIR * scroll_exp_mult) / 16.0f;
+            float fx_scroll = ((float)dx * SCROLL_X_DIR * scroll_exp_mult * slow_mult_scroll * fast_mult_scroll) / 48.0f;
+            float fy_scroll = ((float)dy * SCROLL_Y_DIR * scroll_exp_mult * slow_mult_scroll * fast_mult_scroll) / 16.0f;
 
             scroll_rem_x += fx_scroll;
             scroll_rem_y += fy_scroll;
