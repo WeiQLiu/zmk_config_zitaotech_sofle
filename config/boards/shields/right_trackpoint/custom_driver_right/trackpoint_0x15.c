@@ -293,30 +293,29 @@ static void trackpoint_work_cb(struct k_work *work) {
         }
     }
 
-
-        
     /* ========================================================================= */
-    /* 3. 正常鼠标移动模式 —— ⭐ 精准修复版（彻底解决方向不对称与起飞卡顿）    */
-    /* ========================================================================= */
-    /* ========================================================================= */
-    /* 3. 正常鼠标移动模式 —— ⭐ 动静分明高精度修复版（彻底解决用久了方向不对称） */
+    /* 3. 正常鼠标移动模式 —— ⭐ 完美解决长久使用方向不对称与漂移死锁版         */
     /* ========================================================================= */
     else {
         uint8_t tp_led_brt = custom_led_get_last_valid_brightness();
         float tp_factor = 0.4f + 0.01f * tp_led_brt;
 
-        int8_t cur_dx = dx;
-        int8_t cur_dy = dy;
+        // 🟢 防线 1：硬件级死区过滤 (过滤掉手指放开后，传感器未完全归零的 1 或 -1 的微小硬件漂移)
+        int8_t cur_dx = (abs(dx) <= 1) ? 0 : dx;
+        int8_t cur_dy = (abs(dy) <= 1) ? 0 : dy;
 
-        // 🟢 核心修复 1：定义静态残留变量
+        // 核心修复：定义静态残留变量
         static float mouse_rem_x = 0.0f;
         static float mouse_rem_y = 0.0f;
+        
+        // 增加一个未发包计数器，用于判断是否处于静止状态
+        static uint32_t no_move_packets = 0;
 
-        // 🟢 核心修复 2：如果硬件吐出的原始数据已经是 0 了，说明手指完全放开
-        // 此时必须立刻强制清空累加器，防止用久了产生单向偏置死锁（方向不对称的根源）
+        // 如果硬件吐出的原始数据（经死区过滤后）已经是 0 了，说明手指放开
         if (cur_dx == 0 && cur_dy == 0) {
             mouse_rem_x = 0.0f;
             mouse_rem_y = 0.0f;
+            no_move_packets = 0;
         } else {
             // 只有真正有位移时，才去计算高复杂的指数加速
 #ifdef CONFIG_TRACKPOINT_EXPONENTIAL
@@ -346,12 +345,28 @@ static void trackpoint_work_cb(struct k_work *work) {
         mouse_rem_x -= final_x;
         mouse_rem_y -= final_y;
 
-        // 4. 🔴 只有当累加大于等于 1 像素时才合流同步投递
+        // 4. 只有当累加大于等于 1 像素时才合流同步投递
         if (final_x != 0 || final_y != 0) {
             input_report_rel(dev, INPUT_REL_X, final_x, false, K_NO_WAIT);
             input_report_rel(dev, INPUT_REL_Y, final_y, true, K_NO_WAIT); 
+            no_move_packets = 0; // 真正产生位移了，重置静止计数器
+        } else {
+            // 🟢 防线 2：自动衰减机制
+            // 如果持续 10 个数据包（约 50-100ms）有微小输入但无法凑整整型像素
+            // 说明陷入了单向微弱偏置，强制清除累加器，杜绝方向不对称的根源
+            if (cur_dx != 0 || cur_dy != 0) {
+                no_move_packets++;
+                if (no_move_packets > 10) {
+                    mouse_rem_x = 0.0f;
+                    mouse_rem_y = 0.0f;
+                    no_move_packets = 0;
+                }
+            } else {
+                no_move_packets = 0;
+            }
         }
     }
+ 
     // 5. 时间戳安全位置：确保每一次数据处理（无论走哪个分支）时间步长都在连续更新
     data->last_packet_time = now; 
 
