@@ -117,8 +117,8 @@ static int special_key_listener_cb(const zmk_event_t *eh) {
     }
     
     if (ev->position == 22) {
-        slow_key_pressed = ev->state;
-        LOG_INF("slow_key position=36 %s", slow_key_pressed ? "PRESSED" : "RELEASED");
+        fast_key_pressed = ev->state;
+        LOG_INF("slow_key position=36 %s", fast_key_pressed ? "PRESSED" : "RELEASED");
     }
     
     return 0;
