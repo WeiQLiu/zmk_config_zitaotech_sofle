@@ -65,7 +65,7 @@ static struct k_work_q tp_workq;
 #define TRACKPOINT_MAGIC_BYTE0 0x50
 
 #define SLOW_KEY_MULTIPLIER 0.3f
-#define FAST_KEY_MULTIPLIER 5f
+#define FAST_KEY_MULTIPLIER 4.0f
 
 /* ========= Watch Dog ========= */
 static uint32_t last_activity_time = 0;
