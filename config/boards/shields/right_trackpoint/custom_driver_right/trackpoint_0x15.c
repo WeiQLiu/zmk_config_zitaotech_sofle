@@ -367,30 +367,12 @@ static void trackpoint_work_cb(struct k_work *work) {
 }
 
 /* ========= GPIO 中断接收服务 ========= */
-/* // 改个逻辑
 static void motion_isr(const struct device *port, struct gpio_callback *cb, uint32_t pins) {
     struct trackpoint_data *data = CONTAINER_OF(cb, struct trackpoint_data, motion_cb_data);
     last_activity_time = k_uptime_get_32();
     k_work_submit_to_queue(&tp_workq, &data->work);
 }
-*/
-static void motion_isr(const struct device *port, struct gpio_callback *cb, uint32_t pins) {
-    struct trackpoint_data *data = CONTAINER_OF(cb, struct trackpoint_data, motion_cb_data);
-    const struct trackpoint_config *cfg = data->dev->config;
 
-    last_activity_time = k_uptime_get_32();
-
-    // 1. ⭐ 核心修改：立刻关闭 GPIO 中断，防止中断轰炸卡死系统
-    gpio_pin_interrupt_configure_dt(&cfg->motion_gpio, GPIO_INT_DISABLE);
-
-    // 2. 提交数据读取任务到独立队列
-    k_work_submit_to_queue(&tp_workq, &data->work);
-
-    // 3. ⭐ 核心修改：让延迟工作队列在 10ms 后自动去重新开启中断
-    k_work_schedule(&data->enable_irq_work, K_MSEC(10)); 
-}
-
-/* // 这个也要顺带改的
 static void trackpoint_enable_irq_work_cb(struct k_work *work) {
     struct k_work_delayable *dwork = CONTAINER_OF(work, struct k_work_delayable, work);
     struct trackpoint_data *data = CONTAINER_OF(dwork, struct trackpoint_data, enable_irq_work);
@@ -400,21 +382,6 @@ static void trackpoint_enable_irq_work_cb(struct k_work *work) {
     gpio_pin_interrupt_configure_dt(&cfg->motion_gpio, GPIO_INT_EDGE_TO_ACTIVE);
     LOG_INF("TrackPoint IRQ enabled (delayed)");
 }
-*/
-static void trackpoint_enable_irq_work_cb(struct k_work *work) {
-    struct k_work_delayable *dwork = CONTAINER_OF(work, struct k_work_delayable, work);
-    struct trackpoint_data *data = CONTAINER_OF(dwork, struct trackpoint_data, enable_irq_work);
-    const struct trackpoint_config *cfg = data->dev->config;
-
-    // 重新开启边沿触发中断
-    gpio_pin_interrupt_configure_dt(&cfg->motion_gpio, GPIO_INT_EDGE_TO_ACTIVE);
-
-    LOG_DBG("TrackPoint IRQ re-enabled"); // 改为 DBG 级别，日常不打印
-}
-
-
-
-
 
 /* ========= 初始化函数 ========= */
 static int trackpoint_init(const struct device *dev) {
@@ -428,10 +395,6 @@ static int trackpoint_init(const struct device *dev) {
     k_mutex_init(&trackpoint_i2c_mutex);
 
     data->dev = dev;
-    // data->scroll_residue_x = 0;
-    // data->scroll_residue_y = 0;
-    // data->arrow_residue_x = 0;
-    // data->arrow_residue_y = 0;
     data->last_packet_time = k_uptime_get_32();
 
     k_work_init(&data->work, trackpoint_work_cb);
@@ -439,24 +402,29 @@ static int trackpoint_init(const struct device *dev) {
     k_work_queue_start(&tp_workq, tp_workq_stack, K_THREAD_STACK_SIZEOF(tp_workq_stack),
                        TP_WORKQ_PRIORITY, NULL);
 
+    // 1. 配置引脚
     gpio_pin_configure_dt(&cfg->motion_gpio, GPIO_INPUT);
+    
+    // 👇 ⭐ 核心修改：在这里补上这一行，显式关闭开机瞬间的中断
+    gpio_pin_interrupt_configure_dt(&cfg->motion_gpio, GPIO_INT_DISABLE);
 
+    // 2. 绑定回调
     gpio_init_callback(&data->motion_cb_data, motion_isr, BIT(cfg->motion_gpio.pin));
     gpio_add_callback(cfg->motion_gpio.port, &data->motion_cb_data);
 
     k_work_init_delayable(&data->enable_irq_work, trackpoint_enable_irq_work_cb);
-    // 依然刷新时间戳，确保不管延迟多久开启，第一次推的时候都不会触发看门狗误判
+    
+    // 3. 刷新开机时间戳（解决首触断连Bug）
     uint32_t boot_time = k_uptime_get_32();
     last_activity_time = boot_time;
     data->last_packet_time = boot_time;
 
-    // 给副手分体通信和电压留足缓冲时间，200ms 黄金安全期
+    // 4. 给副手留 100ms 缓冲后自动开启中断
     k_work_schedule(&data->enable_irq_work, K_MSEC(100)); 
 
     LOG_INF("TrackPoint Driver Initialized (Pure Physics Symmetric Mode)");
     return 0;
 }
-
 #define TRACKPOINT_DEFINE(inst)                                                                    \
     static struct trackpoint_data trackpoint_data_##inst;                                          \
     static const struct trackpoint_config trackpoint_config_##inst = {                             \
