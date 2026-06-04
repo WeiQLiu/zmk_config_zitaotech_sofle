@@ -314,8 +314,8 @@
 &kp GRAVE  &kp F1     &kp F2          &kp F3          &kp F4           &kp F5           &bt BT_CLR  &kp C_MUTE  &kp F6        &kp F7            &kp F8             &kp F9           &kp F10  &kp DEL
 &none      &kp HOME   &mkp MB4        &kp UP_ARROW    &mkp MB5         &out OUT_TOG     &kp F11     &kp F12     &kp UP_ARROW  &kp LEFT_BRACKET  &kp RIGHT_BRACKET  &kp BACKSLASH
 &to 2      &kp END    &kp LEFT_ARROW  &kp DOWN_ARROW  &kp RIGHT_ARROW  &none            &mkp RCLK   &mkp RCLK   &kp TAB       &kp LEFT_ARROW    &kp DOWN_ARROW     &kp RIGHT_ARROW  &none    &kp SQT
-&kp GLOBE  &kp GLOBE  &none           &kp PAGE_DOWN   &kp PAGE_UP      &rgb_ug RGB_TOG  &kp END     &kp HOME    &bl BL_DEC    &bl BL_INC        &kp ESCAPE         &kp F24          &none    &kp MINUS  &kp EQUAL  &none
-&BOT       &none      &none           &none           &kp LEFT_SHIFT   &kp RIGHT_SHIFT  &none       &none       &none         &BOT
+&kp GLOBE  &kp GLOBE  &none           &kp PAGE_DOWN   &kp PAGE_UP      &rgb_ug RGB_TOG  &kp END     &kp HOME    &bl BL_DEC    &bl BL_INC        &kp ESCAPE         &kp F24          &none    &kp MINUS  &kp EQUAL  &trans
+&BOT       &trans     &trans          &trans          &kp LEFT_SHIFT   &kp RIGHT_SHIFT  &trans      &trans      &trans        &BOT
             >;
 
             sensor-bindings = <&BLE_encoder>, <&inc_dec_kp LG(MINUS) LG(EQUAL)>;
@@ -327,7 +327,7 @@
             display-name = "WINDOWS";
             bindings = <
 &kp ESC         &kp N1             &kp N2               &kp N3            &kp N4         &kp N5       &kp C_MUTE     &kp C_MUTE         &kp N6         &kp N7         &kp N8         &kp N9                &kp N0                 &kp BSPC
-&kp TAB         &kp Q              &kp W                &kp E             &kp R          &kp T        &kp Y          &kp U              &hml_none 0 I          &kp O          &kp P          &kp BSLH
+&kp TAB         &kp Q              &kp W                &kp E             &kp R          &kp T        &kp Y          &kp U              &hml_none 0 I  &kp O          &kp P          &kp BSLH
 &kp LEFT_SHIFT  &hml LEFT_SHIFT A  &hml LEFT_CONTROL S  &kp D             &hml_none 0 F  &kp G        &mkp LCLK      &mkp LCLK          &hml_none 0 H  &hml_none 0 J  &hml_none 0 K  &hmr RIGHT_CONTROL L  &hmr RIGHT_SHIFT SEMI  &kp ENTER
 &kp LGUI        &hml LEFT_GUI Z    &kp X                &kp C             &kp V          &kp B        &kp PG_DN      &kp PG_UP          &mkp LCLK      &mkp RCLK      &kp N          &kp M                 &kp COMMA              &kp DOT    &hmr RIGHT_GUI FSLH  &kp RSHIFT
 &mkp MB2        &mkp MB1           &kp LEFT_CONTROL     &alt_shift_dance  &lt 3 SPACE    &lt 3 SPACE  &kp RIGHT_ALT  &kp RIGHT_CONTROL  &mkp MB1       &mkp MB2
@@ -346,8 +346,8 @@
 &kp GRAVE  &kp F1    &kp F2          &kp F3          &kp F4           &kp F5           &bt BT_CLR  &kp C_MUTE  &kp F6        &kp F7            &kp F8             &kp F9           &kp F10  &kp DEL
 &to 0      &kp HOME  &mkp MB4        &kp UP_ARROW    &mkp MB5         &out OUT_TOG     &kp F11     &kp F12     &kp UP_ARROW  &kp LEFT_BRACKET  &kp RIGHT_BRACKET  &kp BACKSLASH
 &none      &kp END   &kp LEFT_ARROW  &kp DOWN_ARROW  &kp RIGHT_ARROW  &none            &mkp RCLK   &mkp RCLK   &kp TAB       &kp LEFT_ARROW    &kp DOWN_ARROW     &kp RIGHT_ARROW  &none    &kp SQT
-&none      &none     &none           &kp PAGE_DOWN   &kp PAGE_UP      &rgb_ug RGB_TOG  &kp END     &kp HOME    &bl BL_DEC    &bl BL_INC        &kp ESCAPE         &kp K_BACK       &none    &kp MINUS  &kp EQUAL  &none
-&BOT       &none     &none           &none           &kp LEFT_SHIFT   &kp RIGHT_SHIFT  &none       &none       &none         &BOT
+&none      &none     &none           &kp PAGE_DOWN   &kp PAGE_UP      &rgb_ug RGB_TOG  &kp END     &kp HOME    &bl BL_DEC    &bl BL_INC        &kp ESCAPE         &kp K_BACK       &none    &kp MINUS  &kp EQUAL  &trans
+&BOT       &trans    &trans          &trans          &kp LEFT_SHIFT   &kp RIGHT_SHIFT  &trans      &trans      &trans        &BOT
             >;
 
             sensor-bindings = <&BLE_encoder>, <&scroll_left_right>;
@@ -358,11 +358,11 @@
         MOUSE_layer {
             display-name = "MOUSE";
             bindings = <
-&trans     &trans     &trans  &trans  &trans      &trans  &trans                                &kp C_MUTE    &trans     &trans      &trans  &trans         &trans  &trans
-&trans     &trans     &trans  &trans  &trans      &trans                                                      &trans     &mkp MB3    &trans  &trans         &trans  &trans
-&trans     &trans     &trans  &trans  &trans      &trans  &mkp LCLK                             &mkp LCLK     &trans     &mkp LCLK   &trans  &msc SCRL_UP   &trans  &trans
-&trans     &trans     &trans  &trans  &trans      &trans  &msc SCRL_DOWN  &msc SCRL_UP      &trans  &trans    &trans     &mkp RCLK     &trans  &msc SCRL_DOWN  &trans  &trans
-                            &mkp MB2  &mkp MB1  &trans  &trans  &trans                    &trans  &trans           &trans         &mkp MB1  &mkp MB2
+&trans    &trans    &trans  &trans  &trans  &trans  &trans          &kp C_MUTE    &trans    &trans     &trans  &trans     &trans  &trans
+&trans    &trans    &trans  &trans  &trans  &trans  &trans          &mkp MB3      &trans    &trans     &trans  &trans
+&trans    &trans    &trans  &trans  &trans  &trans  &mkp LCLK       &mkp LCLK     &trans    &mkp LCLK  &trans  &trans     &trans  &trans
+&trans    &trans    &trans  &trans  &trans  &trans  &msc SCRL_DOWN  &msc SCRL_UP  &trans    &trans     &trans  &mkp RCLK  &trans  &trans  &trans  &trans
+&mkp MB2  &mkp MB1  &trans  &trans  &trans  &trans  &trans          &trans        &mkp MB1  &mkp MB2
             >;
         };
     };
