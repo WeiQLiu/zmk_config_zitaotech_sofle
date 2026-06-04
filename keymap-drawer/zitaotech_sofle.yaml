@@ -123,16 +123,16 @@ layers:
   - ''
   - '-'
   - '='
-  - ''
+  - {t: ▽, type: trans}
   - '&bootloader'
-  - ''
-  - ''
-  - ''
+  - {t: ▽, type: trans}
+  - {t: ▽, type: trans}
+  - {t: ▽, type: trans}
   - {t: LEFT SHIFT, type: held}
   - RIGHT SHIFT
-  - ''
-  - ''
-  - ''
+  - {t: ▽, type: trans}
+  - {t: ▽, type: trans}
+  - {t: ▽, type: trans}
   - '&bootloader'
   WINDOWS:
   - ESC
@@ -257,16 +257,16 @@ layers:
   - ''
   - '-'
   - '='
-  - ''
+  - {t: ▽, type: trans}
   - '&bootloader'
-  - ''
-  - ''
-  - ''
+  - {t: ▽, type: trans}
+  - {t: ▽, type: trans}
+  - {t: ▽, type: trans}
   - {t: LEFT SHIFT, type: held}
   - RIGHT SHIFT
-  - ''
-  - ''
-  - ''
+  - {t: ▽, type: trans}
+  - {t: ▽, type: trans}
+  - {t: ▽, type: trans}
   - '&bootloader'
   MOUSE:
   - {t: ▽, type: trans}
@@ -306,7 +306,7 @@ layers:
   - {t: ▽, type: trans}
   - '&mkp LCLK'
   - {t: ▽, type: trans}
-  - '&msc SCRL_UP'
+  - {t: ▽, type: trans}
   - {t: ▽, type: trans}
   - {t: ▽, type: trans}
   - {t: ▽, type: trans}
@@ -322,7 +322,7 @@ layers:
   - {t: ▽, type: trans}
   - '&mkp RCLK'
   - {t: ▽, type: trans}
-  - '&msc SCRL_DOWN'
+  - {t: ▽, type: trans}
   - {t: ▽, type: trans}
   - {t: ▽, type: trans}
   - '&mkp MB2'
