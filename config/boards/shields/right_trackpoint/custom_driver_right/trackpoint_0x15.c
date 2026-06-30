@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/i2c.h>
+#include <math.h>
 
 #include <zmk/event_manager.h>
 #include <zmk/events/position_state_changed.h>
@@ -34,6 +35,9 @@ static const struct device *motion_gpio_dev;
 #define TRACKPOINT_I2C_ADDR 0x15
 #define TRACKPOINT_PACKET_LEN 7
 #define TRACKPOINT_MAGIC_BYTE0 0x50
+
+/* Minimal anti-drift parameters: baseline removal and tiny decay */
+#define BASELINE_ALPHA 0.0005f /* very slow low-pass for bias estimate */
 
 /* ========= 全局状态 ========= */
 static const struct device *trackpoint_dev_ref = NULL;
@@ -100,28 +104,45 @@ static void trackpoint_poll_work(struct k_work *work) {
         /* INTPIN 拉低，读取数据包 */
         int8_t dx = 0, dy = 0;
         if (trackpoint_read_packet(dev, &dx, &dy) == 0) {
+            /* Anti-drift baseline (very slow low-pass) */
+            static float baseline_x = 0.0f;
+            static float baseline_y = 0.0f;
+            float raw_x = (float)dx;
+            float raw_y = (float)dy;
+            /* update baseline slowly to track only very slow DC bias */
+            baseline_x = baseline_x * (1.0f - BASELINE_ALPHA) + raw_x * BASELINE_ALPHA;
+            baseline_y = baseline_y * (1.0f - BASELINE_ALPHA) + raw_y * BASELINE_ALPHA;
+            /* remove baseline/drift */
+            float adj_x = raw_x - baseline_x;
+            float adj_y = raw_y - baseline_y;
+
             if (space_pressed) {
                 /* Space 按住时作为滚轮 */
-                int16_t scroll_x = 0, scroll_y = 0;
-                if (abs(dy) >= 128) {
-                    scroll_x = -dx / 24;
-                    scroll_y = -dy / 24;
-                } else if (abs(dy) >= 64) {
-                    scroll_x = -dx / 16;
-                    scroll_y = -dy / 16;
-                } else if (abs(dy) >= 32) {
-                    scroll_x = -dx / 12;
-                    scroll_y = -dy / 12;
-                } else if (abs(dy) >= 21) {
-                    scroll_x = -dx / 8;
-                    scroll_y = -dy / 8;
-                } else if (abs(dy) >= 3) {
-                    scroll_x = (dx > 0) ? -1 : (dx < 0) ? 1 : 0;
-                    scroll_y = (dy > 0) ? -1 : (dy < 0) ? 1 : 0;
+                float scroll_fx = 0.0f, scroll_fy = 0.0f;
+                float ay = fabsf(adj_y);
+                if (ay >= 128.0f) {
+                    scroll_fx = -adj_x / 24.0f;
+                    scroll_fy = -adj_y / 24.0f;
+                } else if (ay >= 64.0f) {
+                    scroll_fx = -adj_x / 16.0f;
+                    scroll_fy = -adj_y / 16.0f;
+                } else if (ay >= 32.0f) {
+                    scroll_fx = -adj_x / 12.0f;
+                    scroll_fy = -adj_y / 12.0f;
+                } else if (ay >= 21.0f) {
+                    scroll_fx = -adj_x / 8.0f;
+                    scroll_fy = -adj_y / 8.0f;
+                } else if (ay >= 3.0f) {
+                    scroll_fx = (adj_x > 0.0f) ? -1.0f : (adj_x < 0.0f) ? 1.0f : 0.0f;
+                    scroll_fy = (adj_y > 0.0f) ? -1.0f : (adj_y < 0.0f) ? 1.0f : 0.0f;
                 } else {
-                    scroll_x = (dx > 0) ? -1 : (dx < 0) ? 1 : 0;
-                    scroll_y = 0;
+                    scroll_fx = (adj_x > 0.0f) ? -1.0f : (adj_x < 0.0f) ? 1.0f : 0.0f;
+                    scroll_fy = 0.0f;
                 }
+
+                int16_t scroll_x = (int16_t)roundf(scroll_fx);
+                int16_t scroll_y = (int16_t)roundf(scroll_fy);
+
                 input_report_rel(dev, INPUT_REL_HWHEEL, scroll_x, false, K_FOREVER);
                 input_report_rel(dev, INPUT_REL_WHEEL, -scroll_y, true, K_FOREVER);
                 k_sleep(K_MSEC(40));
@@ -129,10 +150,13 @@ static void trackpoint_poll_work(struct k_work *work) {
                 /* 正常鼠标移动 */
                 uint8_t tp_led_brt = custom_led_get_last_valid_brightness();
                 float tp_factor = 0.4f + 0.01f * tp_led_brt;
-                dx = dx * 3 / 2 * tp_factor;
-                dy = dy * 3 / 2 * tp_factor;
-                input_report_rel(dev, INPUT_REL_X, -dx, false, K_FOREVER);
-                input_report_rel(dev, INPUT_REL_Y, -dy, true, K_FOREVER);
+                /* use float math then round to avoid integer truncation bias */
+                float sx = adj_x * 1.5f * tp_factor;
+                float sy = adj_y * 1.5f * tp_factor;
+                int out_dx = (int)roundf(sx);
+                int out_dy = (int)roundf(sy);
+                input_report_rel(dev, INPUT_REL_X, -out_dx, false, K_FOREVER);
+                input_report_rel(dev, INPUT_REL_Y, -out_dy, true, K_FOREVER);
             }
         }
         last_packet_time = now;
