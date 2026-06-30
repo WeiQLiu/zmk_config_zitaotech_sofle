@@ -67,6 +67,10 @@ static struct k_work_q tp_workq;
 #define SLOW_KEY_MULTIPLIER 0.3f
 #define FAST_KEY_MULTIPLIER 4.0f
 
+/* ========= Residual protection (minimal) ========= */
+#define RESIDUAL_DECAY 0.9995f
+#define MAX_RESIDUAL 10000.0f
+
 /* ========= Watch Dog ========= */
 static uint32_t last_activity_time = 0;
 #define TRACKPOINT_WDT_TIMEOUT 300 // 从 200 改为 300
@@ -277,8 +281,17 @@ static void trackpoint_work_cb(struct k_work *work) {
             scroll_rem_x += fx_scroll;
             scroll_rem_y += fy_scroll;
 
-            int16_t scroll_x = (int16_t)scroll_rem_x;
-            int16_t scroll_y = (int16_t)scroll_rem_y;
+            // apply tiny residual decay and clamp
+            scroll_rem_x *= RESIDUAL_DECAY;
+            scroll_rem_y *= RESIDUAL_DECAY;
+            if (scroll_rem_x > MAX_RESIDUAL) scroll_rem_x = MAX_RESIDUAL;
+            if (scroll_rem_x < -MAX_RESIDUAL) scroll_rem_x = -MAX_RESIDUAL;
+            if (scroll_rem_y > MAX_RESIDUAL) scroll_rem_y = MAX_RESIDUAL;
+            if (scroll_rem_y < -MAX_RESIDUAL) scroll_rem_y = -MAX_RESIDUAL;
+
+            // round to avoid truncation bias
+            int16_t scroll_x = (int16_t)roundf(scroll_rem_x);
+            int16_t scroll_y = (int16_t)roundf(scroll_rem_y);
 
             scroll_rem_x -= scroll_x;
             scroll_rem_y -= scroll_y; 
@@ -345,10 +358,19 @@ static void trackpoint_work_cb(struct k_work *work) {
             // 高精度累加
             mouse_rem_x += (-fx);
             mouse_rem_y += (-fy);
+
+            // apply tiny residual decay and clamp
+            mouse_rem_x *= RESIDUAL_DECAY;
+            mouse_rem_y *= RESIDUAL_DECAY;
+            if (mouse_rem_x > MAX_RESIDUAL) mouse_rem_x = MAX_RESIDUAL;
+            if (mouse_rem_x < -MAX_RESIDUAL) mouse_rem_x = -MAX_RESIDUAL;
+            if (mouse_rem_y > MAX_RESIDUAL) mouse_rem_y = MAX_RESIDUAL;
+            if (mouse_rem_y < -MAX_RESIDUAL) mouse_rem_y = -MAX_RESIDUAL;
         }
 
-        int final_x = (int)mouse_rem_x;
-        int final_y = (int)mouse_rem_y;
+        // round to avoid truncation bias
+        int final_x = (int)roundf(mouse_rem_x);
+        int final_y = (int)roundf(mouse_rem_y);
 
         mouse_rem_x -= final_x;
         mouse_rem_y -= final_y;
