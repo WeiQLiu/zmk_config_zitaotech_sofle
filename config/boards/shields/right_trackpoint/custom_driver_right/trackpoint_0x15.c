@@ -8,7 +8,7 @@
 
 /*
  * TrackPoint HID over I2C Driver (Zephyr Input Subsystem)
- * 终极轴对称、纯物理几何加速、彻底根治久用敏感度偏斜版
+ * 终极轴对称、纯物理几何加速、彻底根治久用敏度偏斜版
  * Copyright (c) 2026 ZitaoTech & Gemini
  * SPDX-License-Identifier: MIT
  */
@@ -21,13 +21,13 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/i2c.h>
 #include <math.h>
+
 #include <zmk/event_manager.h>
 #include <zmk/events/position_state_changed.h>
 
 #include <zephyr/input/input.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/byteorder.h>
-#include <zmk/events/hid_indicators_changed.h>
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 #include <zmk/hid.h>
 
@@ -35,29 +35,30 @@
 
 LOG_MODULE_REGISTER(trackpoint, LOG_LEVEL_DBG);
 
-/* ========= TrackPoint 专用 Work Queue ========= */
-#define TP_WORKQ_STACK_SIZE 2048
-#define TP_WORKQ_PRIORITY 5
-
-static struct k_mutex trackpoint_i2c_mutex;
-
-K_THREAD_STACK_DEFINE(tp_workq_stack, TP_WORKQ_STACK_SIZE);
-static struct k_work_q tp_workq;
+/* ========= Motion GPIO ========= */
+#define MOTION_GPIO_NODE DT_NODELABEL(gpio0)
+#define MOTION_GPIO_PIN 14
+static const struct device *motion_gpio_dev;
 
 /* ========================================================================= */
 /* 参数映射区 (100% 物理对称兼容版)                                           */
 /* ========================================================================= */
+/* SCROLL direction flags: provide safe fallbacks if Kconfig values are not set */
+#ifdef CONFIG_TRACKPOINT_SCROLL_X_DIR
 #define SCROLL_X_DIR (-CONFIG_TRACKPOINT_SCROLL_X_DIR)
+#else
+#define SCROLL_X_DIR 1
+#endif
+
+#ifdef CONFIG_TRACKPOINT_SCROLL_Y_DIR
 #define SCROLL_Y_DIR CONFIG_TRACKPOINT_SCROLL_Y_DIR
+#else
+#define SCROLL_Y_DIR 1
+#endif
 
 #define MOUSE_BASE_SPEED (CONFIG_TRACKPOINT_MOUSE_BASE_SPEED_PERCENT / 100.0f)
 #define MOUSE_SENS_BASE (CONFIG_TRACKPOINT_MOUSE_SENS_BASE_PERCENT / 100.0f)
 #define MOUSE_SENS_STEP (CONFIG_TRACKPOINT_MOUSE_SENS_STEP_PERCENT / 100.0f)
-
-/* ========= Motion GPIO ========= */
-#define MOTION_GPIO_NODE DT_NODELABEL(gpio0)
-#define MOTION_GPIO_PIN 14
-#define MOTION_GPIO_FLAGS (GPIO_ACTIVE_LOW | GPIO_PULL_UP)
 
 /* ========= TrackPoint 常量 ========= */
 #define TRACKPOINT_I2C_ADDR 0x15
@@ -345,10 +346,19 @@ static void trackpoint_work_cb(struct k_work *work) {
             // 高精度累加
             mouse_rem_x += (-fx);
             mouse_rem_y += (-fy);
+
+            // apply tiny residual decay and clamp
+            mouse_rem_x *= RESIDUAL_DECAY;
+            mouse_rem_y *= RESIDUAL_DECAY;
+            if (mouse_rem_x > MAX_RESIDUAL) mouse_rem_x = MAX_RESIDUAL;
+            if (mouse_rem_x < -MAX_RESIDUAL) mouse_rem_x = -MAX_RESIDUAL;
+            if (mouse_rem_y > MAX_RESIDUAL) mouse_rem_y = MAX_RESIDUAL;
+            if (mouse_rem_y < -MAX_RESIDUAL) mouse_rem_y = -MAX_RESIDUAL;
         }
 
-        int final_x = (int)mouse_rem_x;
-        int final_y = (int)mouse_rem_y;
+        // round to avoid truncation bias
+        int final_x = (int)roundf(mouse_rem_x);
+        int final_y = (int)roundf(mouse_rem_y);
 
         mouse_rem_x -= final_x;
         mouse_rem_y -= final_y;
