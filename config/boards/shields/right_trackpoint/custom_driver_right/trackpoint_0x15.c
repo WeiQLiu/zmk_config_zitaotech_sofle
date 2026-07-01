@@ -8,7 +8,7 @@
 
 /*
  * TrackPoint HID over I2C Driver (Zephyr Input Subsystem)
- * 终极轴对称、纯物理几何加速、彻底根治久用敏度偏斜版
+ * 终极轴对称、纯物理几何加速、彻底根治久用敏感度偏斜版
  * Copyright (c) 2026 ZitaoTech & Gemini
  * SPDX-License-Identifier: MIT
  */
@@ -35,10 +35,14 @@
 
 LOG_MODULE_REGISTER(trackpoint, LOG_LEVEL_DBG);
 
-/* ========= Motion GPIO ========= */
-#define MOTION_GPIO_NODE DT_NODELABEL(gpio0)
-#define MOTION_GPIO_PIN 14
-static const struct device *motion_gpio_dev;
+/* ========= TrackPoint 专用 Work Queue ========= */
+#define TP_WORKQ_STACK_SIZE 2048
+#define TP_WORKQ_PRIORITY 5
+
+static struct k_mutex trackpoint_i2c_mutex;
+
+K_THREAD_STACK_DEFINE(tp_workq_stack, TP_WORKQ_STACK_SIZE);
+static struct k_work_q tp_workq;
 
 /* ========================================================================= */
 /* 参数映射区 (100% 物理对称兼容版)                                           */
@@ -59,6 +63,11 @@ static const struct device *motion_gpio_dev;
 #define MOUSE_BASE_SPEED (CONFIG_TRACKPOINT_MOUSE_BASE_SPEED_PERCENT / 100.0f)
 #define MOUSE_SENS_BASE (CONFIG_TRACKPOINT_MOUSE_SENS_BASE_PERCENT / 100.0f)
 #define MOUSE_SENS_STEP (CONFIG_TRACKPOINT_MOUSE_SENS_STEP_PERCENT / 100.0f)
+
+/* ========= Motion GPIO ========= */
+#define MOTION_GPIO_NODE DT_NODELABEL(gpio0)
+#define MOTION_GPIO_PIN 14
+#define MOTION_GPIO_FLAGS (GPIO_ACTIVE_LOW | GPIO_PULL_UP)
 
 /* ========= TrackPoint 常量 ========= */
 #define TRACKPOINT_I2C_ADDR 0x15
@@ -83,18 +92,14 @@ static bool last_arrow_key_pressed = false;
 // 🔴 彻底删除了旧版的全局 uint32_t last_packet_time，杜绝命名空间污染！
 
 /* ==== HID indicators ==== */
-static zmk_hid_indicators_t current_indicators;
+/*
+ * Not all build configurations provide zmk_hid_indicators and related events.
+ * Use a conservative fallback: keep a uint32_t current_indicators defaulting to 0
+ * and avoid registering listeners when the build doesn't include the HID indicator
+ * event type. This prevents compile failures on configurations without that symbol.
+ */
+static uint32_t current_indicators = 0;
 #define HID_INDICATORS_CAPS_LOCK (1 << 1)
-
-static int hid_indicators_listener(const zmk_event_t *eh) {
-    const struct zmk_hid_indicators_changed *ev = as_zmk_hid_indicators_changed(eh);
-    if (ev) {
-        current_indicators = ev->indicators;
-    }
-    return ZMK_EV_EVENT_BUBBLE;
-}
-ZMK_LISTENER(a320_hid_listener, hid_indicators_listener);
-ZMK_SUBSCRIPTION(a320_hid_listener, zmk_hid_indicators_changed);
 
 /* ========= 按键监听 ========= */
 static int special_key_listener_cb(const zmk_event_t *eh) {
@@ -264,10 +269,6 @@ static void trackpoint_work_cb(struct k_work *work) {
                 if (scroll_exp_mult > 5.0f) scroll_exp_mult = 5.0f;
             }
 
-
-
-
-            
             float slow_mult_scroll = slow_key_pressed ? SLOW_KEY_MULTIPLIER : 1.0f;
             float fast_mult_scroll = fast_key_pressed ? FAST_KEY_MULTIPLIER : 1.0f;
            
