@@ -171,6 +171,10 @@ static int a320_read_packet(const struct device *dev, int8_t *dx, int8_t *dy) {
     *dx = (int8_t)buf[1];
     *dy = -(int8_t)buf[2];
 
+    // 🚨 漏洞：正常返回时没有调用 k_mutex_unlock！
+    // 这会导致第二次读取时永久卡死在 k_mutex_lock 上！
+    k_mutex_unlock(&a320_i2c_mutex); // ★ 必须加上这行
+    
     return 0;
 
 out:
@@ -184,7 +188,11 @@ static inline void process_scroll_axis(const struct device *dev, int8_t delta, i
     int abs_delta = abs(delta);
 
     // ★ 不清零，保持连续性
-    if (abs_delta <= SCROLL_DEADZONE) {
+    // if (abs_delta <= SCROLL_DEADZONE) {
+    //     return;
+    // }
+
+    if (abs_delta == 0) {
         return;
     }
 
@@ -211,7 +219,8 @@ static inline void process_scroll_axis(const struct device *dev, int8_t delta, i
     }
 
     // ★ 阻尼（关键）
-    *residue = (*residue * 3) / 4;
+    // *residue = (*residue * 3) / 4;
+    // 去掉这个，可以让极为缓慢的触控滑动也可以顺畅触发滚轮。
 }
 
 static inline void process_arrow_axis(const struct device *dev, int8_t delta, int16_t *residue,
@@ -359,10 +368,12 @@ static void a320_work_cb(struct k_work *work) {
             dx = 0;
         } else if (abs_dx * DOMINANT_DENOMINATOR > abs_dy * DOMINANT_NUMERATOR) {
             dy = 0;
-        } else {
-            dx = 0;
-            dy = 0;
-        }
+        } 
+        // else {
+        //     dx = 0;
+        //     dy = 0;
+        // }
+        // 去掉这里 else分支，防止当 dx = dy 时被直接抹掉。
 
         process_scroll_axis(dev, -1 * dx, &data->scroll_residue_x, INPUT_REL_HWHEEL, SCROLL_X_DIR);
 
