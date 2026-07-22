@@ -107,7 +107,7 @@
             compatible = "zmk,behavior-tap-dance";
             label = "ALT_SHIFT_DANCE";
             #binding-cells = <0>;
-            bindings = <&mt LEFT_ALT BACKSPACE>, <&mt LEFT_SHIFT DEL>;
+            bindings = <&mt RIGHT_ALT BACKSPACE>, <&mt LEFT_SHIFT DEL>;
         };
     };
 
@@ -298,7 +298,7 @@
 &kp TAB         &kp Q                &kp W             &kp E     &kp R          &kp T        &kp Y       &kp U       &hml_none 0 I  &kp O          &kp P          &kp SQT
 &kp LEFT_SHIFT  &hml LEFT_SHIFT A    &hml LEFT_GUI S   &kp D     &hml_none 0 F  &kp G        &mkp LCLK   &mkp LCLK   &hml_none 0 H  &hml_none 0 J  &hml_none 0 K  &hmr RIGHT_GUI L  &hmr RIGHT_SHIFT SEMI  &kp ENTER
 &kp LCTRL       &hml LEFT_CONTROL Z  &hml GLOBE X      &kp C     &kp V          &kp B        &kp PG_DN   &kp PG_UP   &mkp LCLK      &mkp RCLK      &kp N          &kp M             &kp COMMA              &hml GLOBE DOT  &hmr RIGHT_CONTROL FSLH  &kp RSHIFT
-&mkp MB2        &mkp MB1             &alt_shift_dance  &kp LGUI  &lt 1 SPACE    &lt 1 SPACE  &kp RGUI    &kp RALT    &mkp MB1       &mkp MB2
+&mkp MB2        &mkp MB1             &kp RALT  &kp LGUI  &lt 1 SPACE    &lt 1 SPACE  &kp RGUI  &alt_shift_dance      &mkp MB1       &mkp MB2
             >;
 
             sensor-bindings =
@@ -330,7 +330,7 @@
 &kp TAB         &kp Q              &kp W                &kp E             &kp R          &kp T        &kp Y          &kp U              &hml_none 0 I  &kp O          &kp P          &kp BSLH
 &kp LEFT_SHIFT  &hml LEFT_SHIFT A  &hml LEFT_CONTROL S  &kp D             &hml_none 0 F  &kp G        &mkp LCLK      &mkp LCLK          &hml_none 0 H  &hml_none 0 J  &hml_none 0 K  &hmr RIGHT_CONTROL L  &hmr RIGHT_SHIFT SEMI  &kp ENTER
 &kp LGUI        &hml LEFT_GUI Z    &kp X                &kp C             &kp V          &kp B        &kp PG_DN      &kp PG_UP          &mkp LCLK      &mkp RCLK      &kp N          &kp M                 &kp COMMA              &kp DOT    &hmr RIGHT_GUI FSLH  &kp RSHIFT
-&mkp MB2        &mkp MB1           &kp LEFT_CONTROL     &alt_shift_dance  &lt 3 SPACE    &lt 3 SPACE  &kp RIGHT_ALT  &kp RIGHT_CONTROL  &mkp MB1       &mkp MB2
+&mkp MB2        &mkp MB1           &kp LEFT_CONTROL     &kp RIGHT_ALT  &lt 3 SPACE    &lt 3 SPACE  &alt_shift_dance  &kp RIGHT_CONTROL  &mkp MB1       &mkp MB2
             >;
 
             sensor-bindings =
