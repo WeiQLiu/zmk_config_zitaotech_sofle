@@ -195,7 +195,8 @@ static void trackpoint_work_cb(struct k_work *work) {
         // 静止唤醒时彻底洗刷全部模式的残留，确保重回绝对零位对称
         mouse_rem_x = 0.0f; mouse_rem_y = 0.0f; last_sign_x = 0; last_sign_y = 0;
         scroll_rem_x = 0.0f; scroll_rem_y = 0.0f;
-        return;
+        // return;
+        // 删掉 return，保证新推的数据能立刻生效。
     }
 
     int8_t dx = 0, dy = 0;
@@ -282,12 +283,12 @@ static void trackpoint_work_cb(struct k_work *work) {
             scroll_rem_y += fy_scroll;
 
             // apply tiny residual decay and clamp
-            scroll_rem_x *= RESIDUAL_DECAY;
-            scroll_rem_y *= RESIDUAL_DECAY;
-            if (scroll_rem_x > MAX_RESIDUAL) scroll_rem_x = MAX_RESIDUAL;
-            if (scroll_rem_x < -MAX_RESIDUAL) scroll_rem_x = -MAX_RESIDUAL;
-            if (scroll_rem_y > MAX_RESIDUAL) scroll_rem_y = MAX_RESIDUAL;
-            if (scroll_rem_y < -MAX_RESIDUAL) scroll_rem_y = -MAX_RESIDUAL;
+            // scroll_rem_x *= RESIDUAL_DECAY;
+            // scroll_rem_y *= RESIDUAL_DECAY;
+            // if (scroll_rem_x > MAX_RESIDUAL) scroll_rem_x = MAX_RESIDUAL;
+            // if (scroll_rem_x < -MAX_RESIDUAL) scroll_rem_x = -MAX_RESIDUAL;
+            // if (scroll_rem_y > MAX_RESIDUAL) scroll_rem_y = MAX_RESIDUAL;
+            // if (scroll_rem_y < -MAX_RESIDUAL) scroll_rem_y = -MAX_RESIDUAL;
 
             // round to avoid truncation bias
             int16_t scroll_x = (int16_t)roundf(scroll_rem_x);
@@ -295,6 +296,10 @@ static void trackpoint_work_cb(struct k_work *work) {
 
             scroll_rem_x -= scroll_x;
             scroll_rem_y -= scroll_y; 
+            
+            // 3. ✅ 只对这些“发不出去的亚像素”进行极其微弱的衰减防积压
+            scroll_rem_x *= RESIDUAL_DECAY;
+            scroll_rem_y *= RESIDUAL_DECAY;
 
             if (scroll_x != 0 || scroll_y != 0) {
                 input_report_rel(dev, INPUT_REL_HWHEEL, scroll_x, false, K_NO_WAIT);
@@ -359,13 +364,13 @@ static void trackpoint_work_cb(struct k_work *work) {
             mouse_rem_x += (-fx);
             mouse_rem_y += (-fy);
 
-            // apply tiny residual decay and clamp
-            mouse_rem_x *= RESIDUAL_DECAY;
-            mouse_rem_y *= RESIDUAL_DECAY;
-            if (mouse_rem_x > MAX_RESIDUAL) mouse_rem_x = MAX_RESIDUAL;
-            if (mouse_rem_x < -MAX_RESIDUAL) mouse_rem_x = -MAX_RESIDUAL;
-            if (mouse_rem_y > MAX_RESIDUAL) mouse_rem_y = MAX_RESIDUAL;
-            if (mouse_rem_y < -MAX_RESIDUAL) mouse_rem_y = -MAX_RESIDUAL;
+            // // apply tiny residual decay and clamp
+            // mouse_rem_x *= RESIDUAL_DECAY;
+            // mouse_rem_y *= RESIDUAL_DECAY;
+            // if (mouse_rem_x > MAX_RESIDUAL) mouse_rem_x = MAX_RESIDUAL;
+            // if (mouse_rem_x < -MAX_RESIDUAL) mouse_rem_x = -MAX_RESIDUAL;
+            // if (mouse_rem_y > MAX_RESIDUAL) mouse_rem_y = MAX_RESIDUAL;
+            // if (mouse_rem_y < -MAX_RESIDUAL) mouse_rem_y = -MAX_RESIDUAL;            
         }
 
         // round to avoid truncation bias
@@ -374,6 +379,10 @@ static void trackpoint_work_cb(struct k_work *work) {
 
         mouse_rem_x -= final_x;
         mouse_rem_y -= final_y;
+        
+        // 3. ✅ 只对这些“发不出去的亚像素”进行极其微弱的衰减防积压
+        mouse_rem_x *= RESIDUAL_DECAY;
+        mouse_rem_y *= RESIDUAL_DECAY;
 
         if (final_x != 0 || final_y != 0) {
             input_report_rel(dev, INPUT_REL_X, final_x, false, K_NO_WAIT);
@@ -391,7 +400,8 @@ static void trackpoint_work_cb(struct k_work *work) {
 /* ========= GPIO 中断接收服务 ========= */
 static void motion_isr(const struct device *port, struct gpio_callback *cb, uint32_t pins) {
     struct trackpoint_data *data = CONTAINER_OF(cb, struct trackpoint_data, motion_cb_data);
-    last_activity_time = k_uptime_get_32();
+    // last_activity_time = k_uptime_get_32();
+        // 删掉这行，是motion_isr 的时间更新。
     k_work_submit_to_queue(&tp_workq, &data->work);
 }
 
