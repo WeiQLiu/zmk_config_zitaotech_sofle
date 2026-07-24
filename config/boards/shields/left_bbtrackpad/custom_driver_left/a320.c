@@ -77,7 +77,8 @@ static struct k_work_q a320_workq;
 #define A320_I2C_ADDR 0x3B
 #define A320_PACKET_LEN 3
 
-#define SLOW_KEY_MULTIPLIER 0.5f
+#define SLOW_KEY_MULTIPLIER 0.3f
+#define FAST_KEY_MULTIPLIER 4.0f
 #define TOUCH_IDLE_TIMEOUT 50 // 30~80ms 看手感
 /* ========= Watch Dog ========= */
 static uint32_t last_activity_time = 0;
@@ -86,6 +87,7 @@ static uint32_t last_activity_time = 0;
 static bool scroll_key_pressed = false;
 static bool arrow_key_pressed = false;
 static bool slow_key_pressed = false;
+static bool fast_key_pressed = false;
 static bool last_scroll_key_pressed = false; // ★ NEW
 static bool last_arrow_key_pressed = false;
 uint32_t last_packet_time = 0;
@@ -129,7 +131,12 @@ static int special_key_listener_cb(const zmk_event_t *eh) {
         slow_key_pressed = ev->state;
         LOG_INF("slow_key position=37 %s", slow_key_pressed ? "PRESSED" : "RELEASED");
     }
-
+    
+    // fast key
+    if (ev->position == 22) {
+        fast_key_pressed = ev->state;
+        LOG_INF("fast_key position=22 %s", fast_key_pressed ? "PRESSED" : "RELEASED");
+    }
     return 0;
 }
 ZMK_LISTENER(a320_special_key_listener, special_key_listener_cb);
@@ -375,18 +382,27 @@ static void a320_work_cb(struct k_work *work) {
         // }
         // 去掉这里 else分支，防止当 dx = dy 时被直接抹掉。
 
-        process_scroll_axis(dev, -1 * dx, &data->scroll_residue_x, INPUT_REL_HWHEEL, SCROLL_X_DIR);
+        // 1. 获取按键状态对应的乘数
+        float slow_mult = slow_key_pressed ? SLOW_KEY_MULTIPLIER : 1.0f;
+        float fast_mult = fast_key_pressed ? FAST_KEY_MULTIPLIER : 1.0f;
 
-        process_scroll_axis(dev, -1 * dy, &data->scroll_residue_y, INPUT_REL_WHEEL, SCROLL_Y_DIR);
+        // 2. 合并：将两个乘数合并（如果同时按下，两者会叠加；通常只按一个）
+        float final_mult = slow_mult * fast_mult;
+        
+        // 3. 乘上去
+        process_scroll_axis(dev, -1 * dx * final_mult * 0.3, &data->scroll_residue_x, INPUT_REL_HWHEEL, SCROLL_X_DIR);
+
+        process_scroll_axis(dev, -1 * dy * final_mult, &data->scroll_residue_y, INPUT_REL_WHEEL, SCROLL_Y_DIR);
     } else if (!capslock) {
 
         uint8_t a320_led_brt = indicator_tp_get_last_valid_brightness();
         float a320_factor = 0.4f + 0.01f * a320_led_brt;
 
         float slow_mult = slow_key_pressed ? SLOW_KEY_MULTIPLIER : 1.0f;
+        float fast_mult = fast_key_pressed ? FAST_KEY_MULTIPLIER : 1.0f;
 
-        float fx = dx * 3 / 4 * a320_factor * slow_mult;
-        float fy = dy * 3 / 4 * a320_factor * slow_mult;
+        float fx = dx * 3 / 4 * a320_factor * slow_mult * fast_mult;
+        float fy = dy * 3 / 4 * a320_factor * slow_mult * fast_mult;
 
         input_report_rel(dev, INPUT_REL_X, (int)fx, false, K_NO_WAIT);
         input_report_rel(dev, INPUT_REL_Y, (int)fy, true, K_NO_WAIT);
