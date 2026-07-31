@@ -92,7 +92,7 @@ layers:
   - F12
   - UP ARROW
   - '['
-  - RIGHT BRACKET H
+  - ']'
   - DEL
   - {t: WINDOWS, h: toggle}
   - END
