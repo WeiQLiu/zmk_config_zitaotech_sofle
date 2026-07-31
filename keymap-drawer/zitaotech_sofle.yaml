@@ -59,12 +59,12 @@ layers:
   - RSHIFT
   - '&mkp MB2'
   - '&mkp MB1'
-  - RALT
+  - '&alt_shift_dance'
   - LGUI
   - {t: SPACE, h: FUNC}
   - {t: SPACE, h: FUNC}
   - RGUI
-  - '&alt_shift_dance'
+  - RALT
   - '&mkp MB1'
   - '&mkp MB2'
   FUNC:
@@ -194,10 +194,10 @@ layers:
   - '&mkp MB2'
   - '&mkp MB1'
   - LEFT CONTROL
-  - RIGHT ALT
-  - {t: SPACE, h: FUNCwin}
-  - {t: SPACE, h: FUNCwin}
   - '&alt_shift_dance'
+  - {t: SPACE, h: FUNCwin}
+  - {t: SPACE, h: FUNCwin}
+  - LEFT ALT
   - RIGHT CONTROL
   - '&mkp MB1'
   - '&mkp MB2'
