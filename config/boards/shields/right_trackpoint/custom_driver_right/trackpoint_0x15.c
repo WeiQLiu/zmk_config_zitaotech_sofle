@@ -264,8 +264,8 @@ static void trackpoint_work_cb(struct k_work *work) {
             
             if (physical_dist > 1.0f) {
                 // 采用几何多项式无感加速，替代旧版极其不稳定的时间戳 powf 算法
-                scroll_exp_mult = 1.0f + (physical_dist * 0.15f);
-                if (scroll_exp_mult > 5.0f) scroll_exp_mult = 5.0f;
+                scroll_exp_mult = 1.0f + (physical_dist * 0.1f);
+                if (scroll_exp_mult > 8.0f) scroll_exp_mult = 8.0f;
             }
 
 
@@ -345,10 +345,10 @@ static void trackpoint_work_cb(struct k_work *work) {
                 // 1. 将原先陡峭的 0.15f 降为极度细腻的 0.04f，平抑微推时的敏感度
                 // 2. 引入平滑多项式，使速度变化率连续，彻底消灭“突变临界点”
                 float delta_dist = physical_dist - 1.0f;
-                exp_mult = 1.0f + (delta_dist * 0.04f) + (delta_dist * delta_dist * 0.003f);
+                exp_mult = 1.0f + (delta_dist * 0.02f) + (delta_dist * delta_dist * 0.003f);
                 
                 // 限制最高增益上限
-                if (exp_mult > 2.8f) exp_mult = 2.8f; 
+                if (exp_mult > 3.2f) exp_mult = 3.2f; 
             }
 #endif
 
@@ -357,8 +357,8 @@ static void trackpoint_work_cb(struct k_work *work) {
 
             // 🟢 调校基础倍率（将原本生硬的 2.5f 调整为更可控的 1.8f 基准，配合上面的平滑多项式）
             // 这样能让鼠标在低速时有极高的操控感，而当你大力推时，通过多项式依然能飞起来
-            float fx = (float)cur_dx * 1.8f * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult * fast_mult;
-            float fy = (float)cur_dy * 1.8f * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult * fast_mult;
+            float fx = (float)cur_dx * 2.4f * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult * fast_mult;
+            float fy = (float)cur_dy * 2.4f * MOUSE_BASE_SPEED * tp_factor * exp_mult * slow_mult * fast_mult;
 
             // 高精度累加
             mouse_rem_x += (-fx);
