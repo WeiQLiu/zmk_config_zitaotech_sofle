@@ -14,7 +14,7 @@ layers:
   - '8'
   - '9'
   - '0'
-  - BSPC
+  - BACKSLAS
   - TAB
   - Q
   - W
@@ -26,7 +26,7 @@ layers:
   - I
   - O
   - P
-  - ''''
+  - BSPC
   - LEFT SHIFT
   - {t: A, h: LEFT SHIFT}
   - {t: S, h: LEFT GUI}
@@ -81,7 +81,7 @@ layers:
   - F8
   - F9
   - F10
-  - DEL
+  - BACKSLAS
   - ''
   - HOME
   - '&mkp MB4'
@@ -92,8 +92,8 @@ layers:
   - F12
   - UP ARROW
   - '['
-  - ']'
-  - \
+  - RIGHT BRACKET H
+  - DEL
   - {t: WINDOWS, h: toggle}
   - END
   - LEFT ARROW
@@ -148,7 +148,7 @@ layers:
   - '8'
   - '9'
   - '0'
-  - BSPC
+  - \
   - TAB
   - Q
   - W
@@ -160,7 +160,7 @@ layers:
   - I
   - O
   - P
-  - \
+  - BSPC
   - LEFT SHIFT
   - {t: A, h: LEFT SHIFT}
   - {t: S, h: LEFT CONTROL}
@@ -215,7 +215,7 @@ layers:
   - F8
   - F9
   - F10
-  - DEL
+  - \
   - {t: MAC, h: toggle}
   - HOME
   - '&mkp MB4'
@@ -227,7 +227,7 @@ layers:
   - UP ARROW
   - '['
   - ']'
-  - \
+  - DEL
   - ''
   - END
   - LEFT ARROW
