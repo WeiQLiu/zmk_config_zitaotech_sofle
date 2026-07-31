@@ -14,7 +14,7 @@ layers:
   - '8'
   - '9'
   - '0'
-  - BACKSLAS
+  - \
   - TAB
   - Q
   - W
@@ -81,7 +81,7 @@ layers:
   - F8
   - F9
   - F10
-  - BACKSLAS
+  - \
   - ''
   - HOME
   - '&mkp MB4'
