@@ -1299,6 +1299,9 @@ path.combo {
 </g>
 <g transform="translate(308, 154)" class="key keypos-31">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">
+<tspan x="0" dy="-0.6em">RGB</tspan><tspan x="0" dy="1.2em">EFF</tspan>
+</text>
 </g>
 <g transform="translate(381, 91)" class="key keypos-32">
 <rect rx="6" ry="6" x="-19" y="-19" width="38" height="38" class="key"/>
