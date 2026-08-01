@@ -345,7 +345,7 @@
             bindings = <
 &kp GRAVE     &kp F1    &kp F2          &kp F3          &kp F4           &kp F5           &bt BT_CLR  &kp C_MUTE  &kp F6        &kp F7            &kp F8             &kp F9           &kp F10  &kp BACKSLASH
 &to 0         &kp HOME  &mkp MB4        &kp UP_ARROW    &mkp MB5         &out OUT_TOG     &kp F11     &kp F12     &kp UP_ARROW  &kp LEFT_BRACKET  &kp RIGHT_BRACKET  &kp DEL
-&bl BL_TOG    &kp END   &kp LEFT_ARROW  &kp DOWN_ARROW  &kp RIGHT_ARROW  &none            &mkp RCLK   &mkp RCLK   &kp TAB       &kp LEFT_ARROW    &kp DOWN_ARROW     &kp RIGHT_ARROW  &none    &kp SQT
+&bl BL_TOG    &kp END   &kp LEFT_ARROW  &kp DOWN_ARROW  &kp RIGHT_ARROW  &rgb_ug RGB_EFF  &mkp RCLK   &mkp RCLK   &kp TAB       &kp LEFT_ARROW    &kp DOWN_ARROW     &kp RIGHT_ARROW  &none    &kp SQT
 &bl BL_CYCLE  &none     &none           &kp PAGE_DOWN   &kp PAGE_UP      &rgb_ug RGB_TOG  &kp END     &kp HOME    &bl BL_DEC    &bl BL_INC        &kp ESCAPE         &kp K_BACK       &none    &kp MINUS      &kp EQUAL  &trans
 &BOT          &trans    &trans          &trans          &kp LEFT_SHIFT   &kp RIGHT_SHIFT  &trans      &trans      &trans        &BOT
             >;
