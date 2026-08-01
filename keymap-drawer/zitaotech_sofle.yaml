@@ -99,7 +99,7 @@ layers:
   - LEFT ARROW
   - DOWN ARROW
   - RIGHT ARROW
-  - ''
+  - '&bl BL_CYCLE'
   - '&mkp RCLK'
   - '&mkp RCLK'
   - TAB
@@ -228,12 +228,12 @@ layers:
   - '['
   - ']'
   - DEL
-  - '&bl BL_TOG'
+  - ''
   - END
   - LEFT ARROW
   - DOWN ARROW
   - RIGHT ARROW
-  - RGB EFF
+  - '&bl BL_CYCLE'
   - '&mkp RCLK'
   - '&mkp RCLK'
   - TAB
@@ -242,7 +242,7 @@ layers:
   - RIGHT ARROW
   - ''
   - ''''
-  - '&bl BL_CYCLE'
+  - ''
   - ''
   - ''
   - PAGE DOWN
