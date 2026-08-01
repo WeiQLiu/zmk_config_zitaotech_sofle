@@ -228,7 +228,7 @@ layers:
   - '['
   - ']'
   - DEL
-  - ''
+  - '&bl BL_TOG'
   - END
   - LEFT ARROW
   - DOWN ARROW
@@ -242,7 +242,7 @@ layers:
   - RIGHT ARROW
   - ''
   - ''''
-  - ''
+  - '&bl BL_CYCLE'
   - ''
   - ''
   - PAGE DOWN
